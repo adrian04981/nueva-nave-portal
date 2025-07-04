@@ -1,0 +1,73 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h2>Dashboard</h2>
+    <p *ngIf="currentUser$ | async as user">
+      Bienvenido, {{ user.name }}!
+    </p>
+  </div>
+  
+  <div class="dashboard-grid">
+    <!-- Cards de estadísticas -->
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-content">
+        <h3>Panel Principal</h3>
+        <p>Información general del sistema</p>
+      </div>
+    </div>
+    
+    <!-- Opciones para administradores -->
+    <div *ngIf="isAdmin()" class="admin-section">
+      <div class="stat-card clickable" [routerLink]="['/users']">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <h3>Gestión de Usuarios</h3>
+          <p>Administrar usuarios del sistema</p>
+        </div>
+      </div>
+      
+      <div class="stat-card clickable" [routerLink]="['/roles']">
+        <div class="stat-icon">🔐</div>
+        <div class="stat-content">
+          <h3>Gestión de Roles</h3>
+          <p>Administrar roles y permisos</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Opciones para vendedores -->
+    <div *ngIf="isSeller()" class="seller-section">
+      <div class="stat-card">
+        <div class="stat-icon">🛍️</div>
+        <div class="stat-content">
+          <h3>Área de Ventas</h3>
+          <p>Próximamente...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Información adicional -->
+  <div class="info-section">
+    <div class="info-card">
+      <h3>Estado del Sistema</h3>
+      <div class="status-indicator online">
+        <span class="dot"></span>
+        Sistema en línea
+      </div>
+      <p>Todos los servicios funcionando correctamente</p>
+    </div>
+    
+    <div class="info-card" *ngIf="currentUser$ | async as user">
+      <h3>Tu Perfil</h3>
+      <div class="user-profile">
+        <div class="profile-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
+        <div class="profile-info">
+          <div class="profile-name">{{ user.name }}</div>
+          <div class="profile-email">{{ user.email }}</div>
+          <div class="profile-role">{{ user.role }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

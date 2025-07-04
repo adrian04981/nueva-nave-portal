@@ -1,0 +1,92 @@
+<div class="setup-container">
+  <div class="setup-card">
+    <div class="setup-header">
+      <h2>🚀 Configuración Inicial</h2>
+      <p>Crea el primer usuario administrador del sistema</p>
+    </div>
+    
+    <form [formGroup]="setupForm" (ngSubmit)="onSetup()" class="setup-form">
+      <div class="form-group">
+        <label for="name">Nombre del Administrador</label>
+        <input 
+          type="text" 
+          id="name" 
+          formControlName="name" 
+          placeholder="Nombre completo"
+          [class.error]="setupForm.get('name')?.invalid && setupForm.get('name')?.touched"
+        >
+        <div *ngIf="setupForm.get('name')?.invalid && setupForm.get('name')?.touched" class="error-message">
+          <span *ngIf="setupForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="setupForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input 
+          type="email" 
+          id="email" 
+          formControlName="email" 
+          placeholder="admin@nuevanave.com"
+          [class.error]="setupForm.get('email')?.invalid && setupForm.get('email')?.touched"
+        >
+        <div *ngIf="setupForm.get('email')?.invalid && setupForm.get('email')?.touched" class="error-message">
+          <span *ngIf="setupForm.get('email')?.errors?.['required']">El email es requerido</span>
+          <span *ngIf="setupForm.get('email')?.errors?.['email']">Email inválido</span>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input 
+          type="password" 
+          id="password" 
+          formControlName="password" 
+          placeholder="Mínimo 6 caracteres"
+          [class.error]="setupForm.get('password')?.invalid && setupForm.get('password')?.touched"
+        >
+        <div *ngIf="setupForm.get('password')?.invalid && setupForm.get('password')?.touched" class="error-message">
+          <span *ngIf="setupForm.get('password')?.errors?.['required']">La contraseña es requerida</span>
+          <span *ngIf="setupForm.get('password')?.errors?.['minlength']">La contraseña debe tener al menos 6 caracteres</span>
+        </div>
+      </div>
+      
+      <div *ngIf="error" class="error-message general-error">
+        {{ error }}
+      </div>
+      
+      <div *ngIf="success" class="success-message">
+        {{ success }}
+      </div>
+      
+      <div class="form-actions">
+        <button 
+          type="submit" 
+          [disabled]="setupForm.invalid || loading"
+          class="setup-button"
+        >
+          <span *ngIf="loading">Creando usuario...</span>
+          <span *ngIf="!loading">Crear Administrador</span>
+        </button>
+        
+        <button 
+          type="button" 
+          (click)="goToLogin()"
+          class="login-button"
+        >
+          Ya tengo cuenta - Ir al Login
+        </button>
+      </div>
+    </form>
+    
+    <div class="info-section">
+      <h3>ℹ️ Información</h3>
+      <ul>
+        <li>Este proceso solo debe realizarse una vez</li>
+        <li>Se creará un usuario administrador con acceso completo</li>
+        <li>Después podrás gestionar otros usuarios desde el panel de administración</li>
+        <li>Los datos por defecto son solo sugerencias, puedes cambiarlos</li>
+      </ul>
+    </div>
+  </div>
+</div>
