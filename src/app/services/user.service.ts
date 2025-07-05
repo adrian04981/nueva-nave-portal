@@ -75,13 +75,23 @@ export class UserService {
   async deleteUser(uid: string): Promise<void> {
     try {
       // Eliminar documento de Firestore
-      const userDoc = doc(this.firestore, `users/${uid}`);
-      await deleteDoc(userDoc);
+      await deleteDoc(doc(this.firestore, 'users', uid));
       
-      // Nota: No podemos eliminar el usuario de Firebase Auth desde el cliente
-      // Esto debe hacerse desde el backend usando Firebase Admin SDK
+      // Nota: No se puede eliminar el usuario de Auth desde el lado del cliente
+      // Esto debe hacerse desde el lado del servidor o manualmente
     } catch (error) {
       console.error('Error eliminando usuario:', error);
+      throw error;
+    }
+  }
+
+  // Nuevo método para obtener usuarios por rol
+  async getUsersByRole(role: 'administrador' | 'vendedor'): Promise<UserProfile[]> {
+    try {
+      const allUsers = await this.getAllUsers();
+      return allUsers.filter(user => user.role === role && user.active);
+    } catch (error) {
+      console.error('Error obteniendo usuarios por rol:', error);
       throw error;
     }
   }

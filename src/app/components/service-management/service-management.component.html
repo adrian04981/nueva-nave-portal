@@ -1,0 +1,276 @@
+<div class="service-management">
+  <div class="header">
+    <h2>Gestión de Servicios</h2>
+    <button class="btn-primary" (click)="openForm()">
+      <i class="icon">🔧</i>
+      Agregar Servicio
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <input
+        type="text"
+        placeholder="Buscar servicios por nombre o descripción..."
+        [(ngModel)]="searchTerm"
+        class="search-input"
+      >
+      
+      <select [(ngModel)]="selectedCategory" class="filter-select">
+        <option value="">Todas las categorías</option>
+        <option *ngFor="let category of categories" [value]="category">
+          {{ category }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Lista de Servicios -->
+  <div class="services-list" *ngIf="services$ | async as services">
+    <div class="service-cards">
+      <div
+        *ngFor="let service of filterServices(services)"
+        class="service-card"
+        [class.inactive]="!service.isActive"
+      >
+        <div class="service-info">
+          <div class="service-header">
+            <h3>{{ service.name }}</h3>
+            <div class="service-status">
+              <span class="status-badge" [class.active]="service.isActive">
+                {{ service.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="service-category">
+            <span class="category-tag">{{ service.category }}</span>
+          </div>
+          
+          <div class="service-description">
+            <p>{{ service.description }}</p>
+          </div>
+          
+          <div class="service-details">
+            <div class="detail-row">
+              <strong>Precio Base:</strong>
+              <span class="price">{{ formatPrice(service.basePrice) }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <strong>Comisión:</strong>
+              <span class="commission">{{ service.commissionRate }}%</span>
+            </div>
+            
+            <div class="detail-row">
+              <strong>Duración:</strong>
+              <span>{{ formatDuration(service.estimatedDuration) }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <strong>Comisión Vendedor:</strong>
+              <span class="commission-amount">{{ formatPrice(calculateCommission(service.basePrice, service.commissionRate)) }}</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="service.notes">
+              <strong>Notas:</strong>
+              <span>{{ service.notes }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="service-actions">
+          <button class="btn-secondary" (click)="openForm(service)">
+            <i class="icon">✏️</i>
+            Editar
+          </button>
+          
+          <button 
+            class="btn-warning" 
+            (click)="toggleServiceStatus(service)"
+            [title]="service.isActive ? 'Desactivar' : 'Activar'"
+          >
+            <i class="icon">{{ service.isActive ? '⏸️' : '▶️' }}</i>
+            {{ service.isActive ? 'Desactivar' : 'Activar' }}
+          </button>
+          
+          <button class="btn-danger" (click)="deleteService(service)">
+            <i class="icon">🗑️</i>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mensaje cuando no hay servicios -->
+    <div *ngIf="filterServices(services).length === 0" class="empty-state">
+      <i class="icon">🔧</i>
+      <h3>No hay servicios registrados</h3>
+      <p>Comienza agregando el primer servicio</p>
+    </div>
+  </div>
+
+  <!-- Modal del formulario -->
+  <div class="modal" [class.show]="isFormVisible">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ selectedService ? 'Editar' : 'Agregar' }} Servicio</h3>
+        <button class="close-btn" (click)="closeForm()">×</button>
+      </div>
+      
+      <form [formGroup]="serviceForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="name">Nombre del Servicio *</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            placeholder="Ej: Pulido completo"
+            required
+          >
+          <div *ngIf="serviceForm.get('name')?.invalid && serviceForm.get('name')?.touched" 
+               class="error-message">
+            El nombre es requerido (mínimo 3 caracteres)
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Descripción *</label>
+          <textarea
+            id="description"
+            formControlName="description"
+            placeholder="Describe el servicio en detalle..."
+            rows="3"
+            required
+          ></textarea>
+          <div *ngIf="serviceForm.get('description')?.invalid && serviceForm.get('description')?.touched" 
+               class="error-message">
+            La descripción es requerida (mínimo 10 caracteres)
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="category">Categoría *</label>
+          <select id="category" formControlName="category" required>
+            <option value="">Seleccione una categoría</option>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+          </select>
+          <div *ngIf="serviceForm.get('category')?.invalid && serviceForm.get('category')?.touched" 
+               class="error-message">
+            Seleccione una categoría
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="basePrice">Precio Base *</label>
+            <input
+              type="number"
+              id="basePrice"
+              formControlName="basePrice"
+              placeholder="0"
+              min="0"
+              step="1000"
+              required
+            >
+            <div *ngIf="serviceForm.get('basePrice')?.invalid && serviceForm.get('basePrice')?.touched" 
+                 class="error-message">
+              El precio base es requerido
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="commissionRate">Comisión Vendedor (%) *</label>
+            <input
+              type="number"
+              id="commissionRate"
+              formControlName="commissionRate"
+              placeholder="0"
+              min="0"
+              max="100"
+              step="0.1"
+              required
+            >
+            <div *ngIf="serviceForm.get('commissionRate')?.invalid && serviceForm.get('commissionRate')?.touched" 
+                 class="error-message">
+              La comisión es requerida (0-100%)
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="estimatedDuration">Duración (minutos) *</label>
+            <input
+              type="number"
+              id="estimatedDuration"
+              formControlName="estimatedDuration"
+              placeholder="60"
+              min="1"
+              step="15"
+              required
+            >
+            <div *ngIf="serviceForm.get('estimatedDuration')?.invalid && serviceForm.get('estimatedDuration')?.touched" 
+                 class="error-message">
+              La duración es requerida (mínimo 1 minuto)
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Estado</label>
+            <div class="toggle-switch">
+              <input
+                type="checkbox"
+                id="isActive"
+                formControlName="isActive"
+              >
+              <label for="isActive" class="toggle-label">
+                {{ serviceForm.get('isActive')?.value ? 'Activo' : 'Inactivo' }}
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cálculo de comisión -->
+        <div class="commission-preview" *ngIf="serviceForm.get('basePrice')?.value > 0 && serviceForm.get('commissionRate')?.value > 0">
+          <div class="preview-box">
+            <strong>Vista previa de comisión:</strong>
+            <div class="preview-details">
+              <div>Precio base: {{ formatPrice(serviceForm.get('basePrice')?.value || 0) }}</div>
+              <div>Comisión: {{ serviceForm.get('commissionRate')?.value || 0 }}%</div>
+              <div class="commission-total">
+                <strong>Comisión vendedor: {{ formatPrice(calculateCommission(serviceForm.get('basePrice')?.value || 0, serviceForm.get('commissionRate')?.value || 0)) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="notes">Notas</label>
+          <textarea
+            id="notes"
+            formControlName="notes"
+            placeholder="Notas adicionales sobre el servicio..."
+            rows="2"
+          ></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="serviceForm.invalid || isLoading"
+          >
+            {{ isLoading ? 'Guardando...' : (selectedService ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -7,12 +7,28 @@
   </div>
   
   <div class="dashboard-grid">
-    <!-- Cards de estadísticas -->
-    <div class="stat-card">
-      <div class="stat-icon">📊</div>
+    <!-- Cards de estadísticas principales -->
+    <div class="stat-card clickable" [routerLink]="['/vehicles']">
+      <div class="stat-icon">�</div>
       <div class="stat-content">
-        <h3>Panel Principal</h3>
-        <p>Información general del sistema</p>
+        <h3>Vehículos</h3>
+        <p>Gestionar inventario de vehículos</p>
+      </div>
+    </div>
+    
+    <div class="stat-card clickable" [routerLink]="['/clients']">
+      <div class="stat-icon">👤</div>
+      <div class="stat-content">
+        <h3>Clientes</h3>
+        <p>Gestionar base de clientes</p>
+      </div>
+    </div>
+    
+    <div class="stat-card clickable" [routerLink]="['/sales']">
+      <div class="stat-icon">💰</div>
+      <div class="stat-content">
+        <h3>Ventas</h3>
+        <p>Gestionar y ver ventas</p>
       </div>
     </div>
     
@@ -26,23 +42,26 @@
         </div>
       </div>
       
-      <div class="stat-card clickable" [routerLink]="['/roles']">
-        <div class="stat-icon">🔐</div>
+      <div class="stat-card clickable" [routerLink]="['/settings']">
+        <div class="stat-icon">⚙️</div>
         <div class="stat-content">
-          <h3>Gestión de Roles</h3>
-          <p>Administrar roles y permisos</p>
+          <h3>Configuración</h3>
+          <p>Ajustar parámetros del sistema</p>
         </div>
       </div>
     </div>
     
-    <!-- Opciones para vendedores -->
+    <!-- Información para vendedores -->
     <div *ngIf="isSeller()" class="seller-section">
-      <div class="stat-card">
-        <div class="stat-icon">🛍️</div>
-        <div class="stat-content">
-          <h3>Área de Ventas</h3>
-          <p>Próximamente...</p>
-        </div>
+      <div class="info-card">
+        <h4>📈 Tu Rendimiento</h4>
+        <p>Como vendedor, puedes:</p>
+        <ul>
+          <li>Registrar nuevos vehículos y clientes</li>
+          <li>Ver el inventario completo</li>
+          <li>Consultar todas las ventas</li>
+          <li>Ganar estrellas por cada venta (Sale In/Off)</li>
+        </ul>
       </div>
     </div>
   </div>

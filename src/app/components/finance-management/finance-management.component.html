@@ -1,0 +1,244 @@
+<div class="finance-management">
+  <div class="header">
+    <h2>Gestión Financiera</h2>
+    <button class="btn-secondary" (click)="exportReport()">
+      <i class="icon">📊</i>
+      Exportar Reporte
+    </button>
+  </div>
+
+  <!-- Filtros de período -->
+  <div class="period-filters">
+    <div class="filter-group">
+      <label>Período:</label>
+      <select [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+        <option *ngFor="let period of periods" [value]="period.value">
+          {{ period.label }}
+        </option>
+      </select>
+      
+      <div class="custom-period" *ngIf="selectedPeriod === 'custom'">
+        <select [(ngModel)]="selectedYear" (change)="onCustomPeriodChange()">
+          <option *ngFor="let year of [2024, 2025, 2026]" [value]="year">
+            {{ year }}
+          </option>
+        </select>
+        
+        <select [(ngModel)]="selectedMonth" (change)="onCustomPeriodChange()">
+          <option *ngFor="let month of months" [value]="month.value">
+            {{ month.label }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pestañas -->
+  <div class="tabs">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'summary'"
+      (click)="activeTab = 'summary'">
+      Resumen
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'commissions'"
+      (click)="activeTab = 'commissions'">
+      Comisiones
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'reports'"
+      (click)="activeTab = 'reports'">
+      Reportes
+    </button>
+  </div>
+
+  <!-- Loader -->
+  <div *ngIf="loading" class="loader">
+    <div class="spinner"></div>
+    <p>Cargando datos financieros...</p>
+  </div>
+
+  <!-- Contenido por pestañas -->
+  <div *ngIf="!loading">
+    
+    <!-- Pestaña Resumen -->
+    <div *ngIf="activeTab === 'summary'" class="tab-content">
+      <div class="summary-cards">
+        <div class="summary-card revenue">
+          <div class="card-header">
+            <h3>Ingresos Totales</h3>
+            <i class="icon">💰</i>
+          </div>
+          <div class="card-value">
+            {{ formatCurrency(financialSummary.totalSales + financialSummary.totalServices) }}
+          </div>
+          <div class="card-detail">
+            Ventas: {{ formatCurrency(financialSummary.totalSales) }}<br>
+            Servicios: {{ formatCurrency(financialSummary.totalServices) }}
+          </div>
+        </div>
+
+        <div class="summary-card commissions">
+          <div class="card-header">
+            <h3>Comisiones Pagadas</h3>
+            <i class="icon">📈</i>
+          </div>
+          <div class="card-value">
+            {{ formatCurrency(financialSummary.totalCommissions + financialSummary.totalServiceCommissions) }}
+          </div>
+          <div class="card-detail">
+            Ventas: {{ formatCurrency(financialSummary.totalCommissions) }}<br>
+            Servicios: {{ formatCurrency(financialSummary.totalServiceCommissions) }}
+          </div>
+        </div>
+
+        <div class="summary-card profit">
+          <div class="card-header">
+            <h3>Ingresos Netos</h3>
+            <i class="icon">💎</i>
+          </div>
+          <div class="card-value">
+            {{ formatCurrency(financialSummary.netRevenue) }}
+          </div>
+          <div class="card-detail">
+            Después de comisiones
+          </div>
+        </div>
+
+        <div class="summary-card growth">
+          <div class="card-header">
+            <h3>Crecimiento</h3>
+            <i class="icon">📊</i>
+          </div>
+          <div class="card-value">
+            {{ formatPercentage(financialSummary.monthlyGrowth) }}
+          </div>
+          <div class="card-detail">
+            Respecto al período anterior
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de resumen -->
+      <div class="chart-container">
+        <h3>Distribución de Ingresos</h3>
+        <div class="chart-placeholder">
+          <div class="chart-bar">
+            <div class="bar-segment sales" 
+                 [style.width.%]="(financialSummary.totalSales / (financialSummary.totalSales + financialSummary.totalServices)) * 100">
+              <span>Ventas</span>
+            </div>
+            <div class="bar-segment services" 
+                 [style.width.%]="(financialSummary.totalServices / (financialSummary.totalSales + financialSummary.totalServices)) * 100">
+              <span>Servicios</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña Comisiones -->
+    <div *ngIf="activeTab === 'commissions'" class="tab-content">
+      <div class="commissions-table">
+        <h3>Reporte de Comisiones por Vendedor</h3>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendedor</th>
+                <th>Ventas</th>
+                <th>Monto Ventas</th>
+                <th>Comisión Ventas</th>
+                <th>Servicios</th>
+                <th>Monto Servicios</th>
+                <th>Comisión Servicios</th>
+                <th>Total Comisión</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let report of commissionReports">
+                <td>{{ report.sellerName }}</td>
+                <td>{{ report.salesCount }}</td>
+                <td>{{ formatCurrency(report.salesAmount) }}</td>
+                <td>{{ formatCurrency(report.salesCommission) }}</td>
+                <td>{{ report.servicesCount }}</td>
+                <td>{{ formatCurrency(report.servicesAmount) }}</td>
+                <td>{{ formatCurrency(report.servicesCommission) }}</td>
+                <td class="total">{{ formatCurrency(report.totalCommission) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="commissionReports.length === 0" class="empty-state">
+          <p>No hay datos de comisiones para el período seleccionado</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña Reportes -->
+    <div *ngIf="activeTab === 'reports'" class="tab-content">
+      <div class="reports-section">
+        <h3>Reportes Detallados</h3>
+        
+        <div class="report-cards">
+          <div class="report-card">
+            <h4>Análisis de Ventas</h4>
+            <div class="report-metrics">
+              <div class="metric">
+                <span class="metric-label">Promedio por Venta:</span>
+                <span class="metric-value">
+                  {{ formatCurrency(sales.length > 0 ? financialSummary.totalSales / sales.length : 0) }}
+                </span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Margen de Comisión:</span>
+                <span class="metric-value">
+                  {{ formatPercentage(financialSummary.totalSales > 0 ? (financialSummary.totalCommissions / financialSummary.totalSales) * 100 : 0) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <h4>Análisis de Servicios</h4>
+            <div class="report-metrics">
+              <div class="metric">
+                <span class="metric-label">Promedio por Servicio:</span>
+                <span class="metric-value">
+                  {{ formatCurrency(serviceOrders.length > 0 ? financialSummary.totalServices / serviceOrders.length : 0) }}
+                </span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Margen de Comisión:</span>
+                <span class="metric-value">
+                  {{ formatPercentage(financialSummary.totalServices > 0 ? (financialSummary.totalServiceCommissions / financialSummary.totalServices) * 100 : 0) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="performance-ranking">
+          <h4>Ranking de Vendedores</h4>
+          <div class="ranking-list">
+            <div *ngFor="let report of commissionReports; let i = index" class="ranking-item">
+              <div class="rank">{{ i + 1 }}</div>
+              <div class="seller-info">
+                <strong>{{ report.sellerName }}</strong>
+                <small>{{ report.salesCount + report.servicesCount }} operaciones</small>
+              </div>
+              <div class="earnings">
+                {{ formatCurrency(report.totalCommission) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

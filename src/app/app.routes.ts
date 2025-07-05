@@ -26,6 +26,35 @@ export const routes: Routes = [
         loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
+        path: 'vehicles',
+        loadComponent: () => import('./components/vehicle-management/vehicle-management.component').then(m => m.VehicleManagementComponent)
+      },
+      {
+        path: 'clients',
+        loadComponent: () => import('./components/client-management/client-management.component').then(m => m.ClientManagementComponent)
+      },
+      {
+        path: 'sales',
+        loadComponent: () => import('./components/sale-management/sale-management.component').then(m => m.SaleManagementComponent)
+      },
+      {
+        path: 'calendar',
+        loadComponent: () => import('./components/calendar/calendar.component').then(m => m.CalendarComponent)
+      },
+      {
+        path: 'staff',
+        loadComponent: () => import('./components/staff-management/staff-management.component').then(m => m.StaffManagementComponent)
+      },
+      {
+        path: 'services',
+        loadComponent: () => import('./components/service-management/service-management.component').then(m => m.ServiceManagementComponent)
+      },
+      {
+        path: 'finances',
+        loadComponent: () => import('./components/finance-management/finance-management.component').then(m => m.FinanceManagementComponent),
+        canActivate: [AdminGuard]
+      },
+      {
         path: 'users',
         loadComponent: () => import('./components/user-management/user-management.component').then(m => m.UserManagementComponent),
         canActivate: [AdminGuard]
@@ -33,6 +62,11 @@ export const routes: Routes = [
       {
         path: 'roles',
         loadComponent: () => import('./components/role-management/role-management.component').then(m => m.RoleManagementComponent),
+        canActivate: [AdminGuard]
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent),
         canActivate: [AdminGuard]
       }
     ]

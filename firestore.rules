@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar si el usuario es administrador
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrador';
+    }
+    
+    // Función para verificar si el usuario es vendedor o admin
+    function isVendedorOrAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['vendedor', 'administrador'];
+    }
+    
+    // Función para verificar si el usuario está activo
+    function isActiveUser() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+    
+    // Función para verificar si es el mismo usuario
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ==== USUARIOS ====
+    // Solo admins pueden crear, leer todos, actualizar y eliminar usuarios
+    // Los usuarios pueden leer y actualizar su propio perfil
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isOwner(userId) && isActiveUser());
+      allow delete: if isAdmin();
+      allow list: if isAdmin();
+    }
+
+    // ==== VEHÍCULOS ====
+    // Todos los usuarios autenticados y activos pueden leer vehículos
+    // Solo admins pueden crear, actualizar y eliminar
+    match /vehicles/{vehicleId} {
+      allow read, list: if isActiveUser();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==== CLIENTES ====
+    // Todos los usuarios autenticados pueden leer y crear clientes
+    // Solo admins pueden eliminar
+    match /clients/{clientId} {
+      allow read, list, create: if isActiveUser();
+      allow update: if isVendedorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==== VENTAS ====
+    // Vendedores pueden crear y leer sus propias ventas
+    // Admins pueden hacer todo
+    match /sales/{saleId} {
+      allow read, list: if isActiveUser();
+      allow create: if isVendedorOrAdmin();
+      allow update: if isAdmin() || (isVendedorOrAdmin() && 
+                     resource.data.sellerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // ==== PERSONAL (STAFF) ====
+    // Todos los usuarios autenticados pueden leer el personal
+    // Solo admins pueden crear, actualizar y eliminar
+    match /staff/{staffId} {
+      allow read, list: if isActiveUser();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==== SERVICIOS ====
+    // Todos los usuarios autenticados pueden leer servicios
+    // Solo admins pueden crear, actualizar y eliminar
+    match /services/{serviceId} {
+      allow read, list: if isActiveUser();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==== ÓRDENES DE SERVICIO ====
+    // Vendedores pueden crear órdenes de servicio
+    // Admins pueden hacer todo
+    match /service-orders/{orderId} {
+      allow read, list: if isActiveUser();
+      allow create: if isVendedorOrAdmin();
+      allow update: if isAdmin() || (isVendedorOrAdmin() && 
+                     resource.data.sellerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // ==== CALENDARIO/EVENTOS ====
+    // Todos los usuarios autenticados pueden leer y crear eventos
+    // Solo pueden editar/eliminar sus propios eventos o si son admin
+    match /calendar-events/{eventId} {
+      allow read, list: if isActiveUser();
+      allow create: if isActiveUser();
+      allow update: if isAdmin() || (isActiveUser() && 
+                     resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin() || (isActiveUser() && 
+                     resource.data.createdBy == request.auth.uid);
+    }
+
+    // ==== CONFIGURACIONES ====
+    // Solo admins pueden leer y modificar configuraciones
+    match /settings/{settingId} {
+      allow read, list, create, update, delete: if isAdmin();
+    }
+
+    // ==== FINANZAS ====
+    // Solo admins pueden acceder a información financiera
+    match /finances/{financeId} {
+      allow read, list, create, update, delete: if isAdmin();
+    }
+
+    // ==== REPORTES ====
+    // Solo admins pueden acceder a reportes
+    match /reports/{reportId} {
+      allow read, list, create, update, delete: if isAdmin();
+    }
+
+    // ==== COMISIONES ====
+    // Vendedores pueden leer sus propias comisiones
+    // Admins pueden hacer todo
+    match /commissions/{commissionId} {
+      allow read, list: if isAdmin() || (isActiveUser() && 
+                        resource.data.sellerId == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==== ROLES ====
+    // Solo admins pueden gestionar roles
+    match /roles/{roleId} {
+      allow read, list, create, update, delete: if isAdmin();
+    }
+
+    // ==== LOGS/AUDITORÍA ====
+    // Solo admins pueden leer logs
+    // El sistema puede crear logs automáticamente
+    match /logs/{logId} {
+      allow read, list: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Los logs no se pueden modificar
+    }
+
+    // ==== CONFIGURACIONES DE EMPRESA ====
+    // Solo admins pueden leer y modificar configuraciones de empresa
+    match /company-settings/{settingId} {
+      allow read, list, create, update, delete: if isAdmin();
+    }
+
+    // ==== NOTIFICACIONES ====
+    // Los usuarios pueden leer y marcar como leídas sus propias notificaciones
+    // Solo admins pueden crear notificaciones
+    match /notifications/{notificationId} {
+      allow read, list: if isActiveUser() && 
+                        resource.data.userId == request.auth.uid;
+      allow create: if isAdmin();
+      allow update: if isActiveUser() && 
+                    resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ==== ARCHIVOS/DOCUMENTOS ====
+    // Los usuarios pueden leer archivos relacionados con sus operaciones
+    // Solo admins pueden crear y eliminar archivos
+    match /documents/{documentId} {
+      allow read, list: if isActiveUser();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==== INVENTARIO ====
+    // Todos los usuarios autenticados pueden leer inventario
+    // Solo admins pueden modificar
+    match /inventory/{inventoryId} {
+      allow read, list: if isActiveUser();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Regla por defecto: denegar todo lo que no esté explícitamente permitido
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

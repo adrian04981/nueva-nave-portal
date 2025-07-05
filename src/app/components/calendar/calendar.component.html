@@ -1,0 +1,296 @@
+<div class="calendar-container">
+  <div class="header">
+    <h2>📅 Agenda de Actividades</h2>
+    <button class="btn-primary" (click)="showAddForm()">
+      <i class="icon">➕</i>
+      Nuevo Evento
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <input 
+        type="date" 
+        [(ngModel)]="selectedDate"
+        (change)="onDateChange()"
+        class="date-input">
+      
+      <select [(ngModel)]="typeFilter" (change)="onFilterChange()" class="filter-select">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let type of eventTypes" [value]="type.value">
+          {{ type.label }}
+        </option>
+      </select>
+      
+      <select [(ngModel)]="statusFilter" (change)="onFilterChange()" class="filter-select">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let status of eventStatuses" [value]="status.value">
+          {{ status.label }}
+        </option>
+      </select>
+      
+      <select [(ngModel)]="staffFilter" (change)="onFilterChange()" class="filter-select">
+        <option value="">Todo el personal</option>
+        <option *ngFor="let staff of staff$ | async" [value]="staff.id">
+          {{ staff.name }} - {{ staff.specialty }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+  <!-- Vista del día seleccionado -->
+  <div class="day-view" *ngIf="!loading">
+    <h3>{{ formatDate(selectedDate) }}</h3>
+    
+    <div class="events-timeline" *ngIf="filteredEvents.length > 0">
+      <div class="event-item" 
+           *ngFor="let event of filteredEvents" 
+           class="event-{{ event.type }}"
+           [class.completed]="event.status === 'completado'"
+           [class.cancelled]="event.status === 'cancelado'">
+        
+        <div class="event-time">
+          <strong>{{ formatTime(event.startTime) }} - {{ formatTime(event.endTime) }}</strong>
+        </div>
+        
+        <div class="event-content">
+          <div class="event-header">
+            <h4>
+              <span class="event-icon">{{ getEventIcon(event.type) }}</span>
+              {{ event.title }}
+            </h4>
+            <span class="event-status" [style.background-color]="getStatusColor(event.status)">
+              {{ getStatusLabel(event.status) }}
+            </span>
+          </div>
+          
+          <div class="event-details">
+            <p *ngIf="event.description">{{ event.description }}</p>
+            <p *ngIf="event.location">📍 {{ event.location }}</p>
+            <p *ngIf="event.notes">📝 {{ event.notes }}</p>
+            
+            <!-- Información de referencias -->
+            <div class="event-references" *ngIf="event.vehicleId || event.clientId || event.serviceId || event.staffId || event.sellerId">
+              <div class="ref-item" *ngIf="event.vehicleId">
+                <strong>🚗 Vehículo:</strong> <span>{{ getVehicleInfo(event.vehicleId) }}</span>
+              </div>
+              <div class="ref-item" *ngIf="event.clientId">
+                <strong>👤 Cliente:</strong> <span>{{ getClientInfo(event.clientId) }}</span>
+              </div>
+              <div class="ref-item" *ngIf="event.sellerId">
+                <strong>💼 Vendedor:</strong> <span>{{ getSellerInfo(event.sellerId) }}</span>
+              </div>
+              <div class="ref-item" *ngIf="event.serviceId">
+                <strong>🔧 Servicio:</strong> <span>{{ getServiceInfo(event.serviceId) }}</span>
+              </div>
+              <div class="ref-item" *ngIf="event.staffId">
+                <strong>👨‍🔧 Personal:</strong> <span>{{ getStaffInfo(event.staffId) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="event-actions">
+          <button class="btn-secondary" (click)="editEvent(event)">
+            ✏️ Editar
+          </button>
+          
+          <div class="status-actions">
+            <button 
+              *ngIf="event.status !== 'en_proceso'"
+              class="btn-warning" 
+              (click)="updateEventStatus(event, 'en_proceso')">
+              ⏳ En Proceso
+            </button>
+            
+            <button 
+              *ngIf="event.status !== 'completado'"
+              class="btn-success" 
+              (click)="updateEventStatus(event, 'completado')">
+              ✅ Completar
+            </button>
+            
+            <button 
+              *ngIf="event.status !== 'cancelado'"
+              class="btn-danger" 
+              (click)="updateEventStatus(event, 'cancelado')">
+              ❌ Cancelar
+            </button>
+          </div>
+          
+          <button class="btn-danger" (click)="deleteEvent(event)">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Estado vacío -->
+    <div class="empty-state" *ngIf="filteredEvents.length === 0">
+      <div class="empty-icon">📅</div>
+      <h4>No hay eventos programados</h4>
+      <p>{{ events.length === 0 ? 'No hay eventos para este día' : 'No hay eventos que coincidan con los filtros' }}</p>
+      <button class="btn-primary" (click)="showAddForm()">
+        Crear Primer Evento
+      </button>
+    </div>
+  </div>
+  
+  <!-- Loader -->
+  <div class="loader" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando eventos...</p>
+  </div>
+
+  <!-- Modal del formulario -->
+  <div class="modal" [class.show]="showForm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ editMode ? 'Editar' : 'Agregar' }} Evento</h3>
+        <button class="close-btn" (click)="closeForm()">×</button>
+      </div>
+
+      <form [formGroup]="eventForm" (ngSubmit)="saveEvent()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Título *</label>
+            <input type="text" formControlName="title" placeholder="Título del evento" required>
+            <div *ngIf="eventForm.get('title')?.invalid && eventForm.get('title')?.touched" 
+                 class="error-message">
+              El título es requerido (mínimo 3 caracteres)
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select formControlName="type" required>
+              <option value="">Seleccionar tipo</option>
+              <option *ngFor="let type of eventTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+            <div *ngIf="eventForm.get('type')?.invalid && eventForm.get('type')?.touched" 
+                 class="error-message">
+              Seleccione un tipo de evento
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Fecha *</label>
+            <input type="date" formControlName="date" required>
+            <div *ngIf="eventForm.get('date')?.invalid && eventForm.get('date')?.touched" 
+                 class="error-message">
+              La fecha es requerida
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Estado *</label>
+            <select formControlName="status" required>
+              <option *ngFor="let status of eventStatuses" [value]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Hora de Inicio *</label>
+            <input type="time" formControlName="startTime" required>
+            <div *ngIf="eventForm.get('startTime')?.invalid && eventForm.get('startTime')?.touched" 
+                 class="error-message">
+              La hora de inicio es requerida
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Hora de Fin *</label>
+            <input type="time" formControlName="endTime" required>
+            <div *ngIf="eventForm.get('endTime')?.invalid && eventForm.get('endTime')?.touched" 
+                 class="error-message">
+              La hora de fin es requerida
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Vehículo</label>
+            <select formControlName="vehicleId">
+              <option value="">Seleccionar vehículo</option>
+              <option *ngFor="let vehicle of vehicles" [value]="vehicle.id">
+                {{ vehicle.brand }} {{ vehicle.model }} - {{ vehicle.year }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cliente</label>
+            <select formControlName="clientId">
+              <option value="">Seleccionar cliente</option>
+              <option *ngFor="let client of clients" [value]="client.id">
+                {{ client.name }} - {{ client.phone }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Servicio</label>
+            <select formControlName="serviceId">
+              <option value="">Seleccionar servicio</option>
+              <option *ngFor="let service of services" [value]="service.id">
+                {{ service.name }} - {{ service.category }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Personal Asignado</label>
+            <select formControlName="staffId">
+              <option value="">Seleccionar personal</option>
+              <option *ngFor="let staff of staff$ | async" [value]="staff.id">
+                {{ staff.name }} - {{ staff.specialty }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Ubicación</label>
+            <input type="text" formControlName="location" placeholder="Ubicación del evento">
+          </div>
+
+          <div class="form-group">
+            <label>Vendedor</label>
+            <select formControlName="sellerId">
+              <option value="">Seleccionar vendedor</option>
+              <option *ngFor="let seller of sellers" [value]="seller.uid">
+                {{ seller.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Descripción</label>
+          <textarea formControlName="description" rows="3" placeholder="Descripción del evento"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="2" placeholder="Notas adicionales"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="!eventForm.valid || loading">
+            {{ loading ? 'Guardando...' : (editMode ? 'Actualizar' : 'Guardar') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

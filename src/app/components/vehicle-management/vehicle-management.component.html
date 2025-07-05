@@ -1,0 +1,310 @@
+<div class="vehicle-management">
+  <div class="header">
+    <h2>Gestión de Vehículos</h2>
+    <button class="btn btn-primary" (click)="showAddForm()">
+      <i class="icon">➕</i>
+      Agregar Vehículo
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <input 
+        type="text" 
+        placeholder="Buscar por marca, modelo o descripción..."
+        [(ngModel)]="searchTerm"
+        (input)="filterVehicles()"
+        class="search-input">
+    </div>
+    
+    <div class="filter-group">
+      <select 
+        [(ngModel)]="statusFilter"
+        (change)="filterVehicles()"
+        class="filter-select">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let status of statuses" [value]="status.value">
+          {{ status.label }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+  <!-- Loader -->
+  <div class="loader" *ngIf="loading">Cargando...</div>
+
+  <!-- Formulario -->
+  <div class="form-modal" *ngIf="showForm">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editMode ? 'Editar' : 'Agregar' }} Vehículo</h3>
+        <button class="close-btn" (click)="cancelForm()">×</button>
+      </div>
+
+      <form [formGroup]="vehicleForm" (ngSubmit)="saveVehicle()">
+        <div class="form-grid">
+          <!-- Información básica -->
+          <div class="form-group">
+            <label>Marca *</label>
+            <select formControlName="brand" required>
+              <option value="">Seleccionar marca</option>
+              <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Modelo *</label>
+            <input type="text" formControlName="model" required>
+          </div>
+
+          <div class="form-group">
+            <label>Año *</label>
+            <input type="number" formControlName="year" required min="1900" max="2030">
+          </div>
+
+          <div class="form-group">
+            <label>Color *</label>
+            <input type="text" formControlName="color" required>
+          </div>
+
+          <div class="form-group">
+            <label>Kilometraje *</label>
+            <input type="number" formControlName="mileage" required min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Precio *</label>
+            <input type="number" formControlName="price" required min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Estado *</label>
+            <select formControlName="status" required>
+              <option *ngFor="let status of statuses" [value]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Propietario *</label>
+            <div class="client-selector">
+              <div class="selected-client" *ngIf="selectedClient">
+                <span class="client-info">
+                  <strong>{{ selectedClient.name }}</strong><br>
+                  <small>{{ selectedClient.email }} - {{ selectedClient.phone }}</small>
+                </span>
+                <button type="button" class="btn-clear" (click)="clearSelectedClient()" title="Limpiar selección">
+                  ×
+                </button>
+              </div>
+              <div class="no-client" *ngIf="!selectedClient">
+                <span class="placeholder">No hay cliente seleccionado</span>
+              </div>
+              <button type="button" class="btn btn-select-client" (click)="openClientSelector()">
+                {{ selectedClient ? 'Cambiar Cliente' : 'Seleccionar Cliente' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Información adicional -->
+          <div class="form-group">
+            <label>Motor</label>
+            <input type="text" formControlName="engine">
+          </div>
+
+          <div class="form-group">
+            <label>Transmisión</label>
+            <select formControlName="transmission">
+              <option value="">Seleccionar</option>
+              <option *ngFor="let trans of transmissions" [value]="trans">{{ trans }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Combustible</label>
+            <select formControlName="fuel">
+              <option value="">Seleccionar</option>
+              <option *ngFor="let fuel of fuels" [value]="fuel">{{ fuel }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Puertas</label>
+            <input type="number" formControlName="doors" min="2" max="8">
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Descripción *</label>
+          <textarea formControlName="description" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Características (separadas por comas)</label>
+          <input type="text" formControlName="features" placeholder="Ej: Aire acondicionado, Bluetooth, Cámara trasera">
+        </div>
+
+        <!-- Componente de carga de imágenes -->
+        <div class="form-group full-width">
+          <label>Imágenes del vehículo</label>
+          <app-image-upload
+            [images]="vehicleImages"
+            [maxImages]="10"
+            (imagesChange)="onImagesChange($event)"
+            (errorChange)="onImageError($event)">
+          </app-image-upload>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelForm()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!vehicleForm.valid || loading">
+            {{ editMode ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de vehículos -->
+  <div class="vehicle-grid" *ngIf="!loading && !showForm">
+    <div class="vehicle-card" *ngFor="let vehicle of filteredVehicles">
+      <div class="vehicle-header">
+        <h3>{{ vehicle.brand }} {{ vehicle.model }}</h3>
+        <span class="status-badge" [class]="getStatusClass(vehicle.status)">
+          {{ getStatusLabel(vehicle.status) }}
+        </span>
+      </div>
+
+      <div class="vehicle-details">
+        <div class="detail-row">
+          <span class="label">Año:</span>
+          <span class="value">{{ vehicle.year }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Color:</span>
+          <span class="value">{{ vehicle.color }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Kilometraje:</span>
+          <span class="value">{{ vehicle.mileage | number }} km</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Precio:</span>
+          <span class="value price">{{ formatPrice(vehicle.price) }}</span>
+        </div>
+        <div class="detail-row" *ngIf="vehicle.transmission">
+          <span class="label">Transmisión:</span>
+          <span class="value">{{ vehicle.transmission }}</span>
+        </div>
+        <div class="detail-row" *ngIf="vehicle.fuel">
+          <span class="label">Combustible:</span>
+          <span class="value">{{ vehicle.fuel }}</span>
+        </div>
+      </div>
+
+      <div class="vehicle-description">
+        <p>{{ vehicle.description }}</p>
+      </div>
+
+      <div class="vehicle-features" *ngIf="vehicle.features && vehicle.features.length > 0">
+        <strong>Características:</strong>
+        <div class="features-list">
+          <span class="feature-tag" *ngFor="let feature of vehicle.features">{{ feature }}</span>
+        </div>
+      </div>
+
+      <div class="vehicle-actions">
+        <!-- Cambio de estado (solo admin) -->
+        <div class="status-actions" *ngIf="isAdmin()">
+          <select (change)="updateStatus(vehicle, $any($event.target).value)" [value]="vehicle.status">
+            <option *ngFor="let status of statuses" [value]="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Acciones (solo admin puede editar/eliminar) -->
+        <div class="action-buttons">
+          <button 
+            class="btn btn-sm btn-secondary" 
+            (click)="editVehicle(vehicle)"
+            *ngIf="isAdmin()"
+            title="Editar">
+            ✏️
+          </button>
+          <button 
+            class="btn btn-sm btn-danger" 
+            (click)="deleteVehicle(vehicle)"
+            *ngIf="isAdmin()"
+            title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="vehicle-meta">
+        <small>Registrado: {{ vehicle.createdAt | date:'short' }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="!loading && !showForm && filteredVehicles.length === 0">
+    <h3>No hay vehículos</h3>
+    <p>{{ vehicles.length === 0 ? 'No hay vehículos registrados' : 'No hay vehículos que coincidan con los filtros' }}</p>
+  </div>
+
+  <!-- Modal Selector de Clientes -->
+  <div class="client-selector-modal" *ngIf="showClientSelector">
+    <div class="modal-overlay" (click)="closeClientSelector()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Seleccionar Cliente</h3>
+        <button class="close-btn" (click)="closeClientSelector()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="search-section">
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, email, teléfono o DNI..."
+            [(ngModel)]="clientSearchTerm"
+            (input)="filterClients()"
+            class="search-input">
+        </div>
+        
+        <div class="clients-list" *ngIf="filteredClients.length > 0">
+          <div class="client-item" 
+               *ngFor="let client of filteredClients" 
+               (click)="selectClient(client)"
+               [class.selected]="selectedClient?.id === client.id">
+            <div class="client-info">
+              <h4>{{ client.name }}</h4>
+              <p>{{ client.email }}</p>
+              <p>{{ client.phone }} - DNI: {{ client.dni }}</p>
+              <small>{{ client.address }}</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="empty-clients" *ngIf="filteredClients.length === 0">
+          <p>No se encontraron clientes</p>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeClientSelector()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,136 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar si el usuario es administrador
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'administrador';
+    }
+    
+    // Función para verificar si el usuario está activo
+    function isActiveUser() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+    
+    // Función para validar tipos de archivo de imagen
+    function isValidImageType() {
+      return resource.contentType.matches('image/.*');
+    }
+    
+    // Función para validar tamaño de archivo (máximo 10MB)
+    function isValidSize() {
+      return resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Función para validar tipos de documento
+    function isValidDocumentType() {
+      return resource.contentType.matches('application/pdf') ||
+             resource.contentType.matches('image/.*') ||
+             resource.contentType.matches('application/msword') ||
+             resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    // ==== IMÁGENES DE VEHÍCULOS ====
+    // Formato: /vehicles/{vehicleId}/{imageId}
+    match /vehicles/{vehicleId}/{imageId} {
+      allow read: if true; // Las imágenes de vehículos son públicas para mostrar en el sitio
+      allow write: if isActiveUser() && isValidImageType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== DOCUMENTOS DE VEHÍCULOS ====
+    // Formato: /vehicles/{vehicleId}/documents/{documentId}
+    match /vehicles/{vehicleId}/documents/{documentId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isValidDocumentType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== FOTOS DE PERFIL DE CLIENTES ====
+    // Formato: /clients/{clientId}/profile/{imageId}
+    match /clients/{clientId}/profile/{imageId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isValidImageType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== DOCUMENTOS DE CLIENTES ====
+    // Formato: /clients/{clientId}/documents/{documentId}
+    match /clients/{clientId}/documents/{documentId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isValidDocumentType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== DOCUMENTOS DE VENTAS ====
+    // Formato: /sales/{saleId}/documents/{documentId}
+    match /sales/{saleId}/documents/{documentId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isValidDocumentType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== CONTRATOS Y DOCUMENTOS LEGALES ====
+    // Formato: /contracts/{contractId}/{documentId}
+    match /contracts/{contractId}/{documentId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isValidDocumentType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== REPORTES FINANCIEROS ====
+    // Formato: /reports/{reportId}/{documentId}
+    match /reports/{reportId}/{documentId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidDocumentType() && isValidSize();
+      allow delete: if isAdmin();
+    }
+
+    // ==== ARCHIVOS TEMPORALES ====
+    // Formato: /temp/{userId}/{fileId}
+    match /temp/{userId}/{fileId} {
+      allow read, write: if isActiveUser() && request.auth.uid == userId;
+      allow delete: if isActiveUser() && request.auth.uid == userId;
+    }
+
+    // ==== LOGOS Y RECURSOS DE LA EMPRESA ====
+    // Formato: /company/{resourceId}
+    match /company/{resourceId} {
+      allow read: if true; // Los logos y recursos de empresa son públicos
+      allow write, delete: if isAdmin();
+    }
+
+    // ==== ICONOS Y RECURSOS DE LA APP ====
+    // Formato: /app-resources/{resourceId}
+    match /app-resources/{resourceId} {
+      allow read: if true; // Los recursos de la app son públicos
+      allow write, delete: if isAdmin();
+    }
+
+    // ==== BACKUPS ====
+    // Formato: /backups/{backupId}
+    match /backups/{backupId} {
+      allow read, write, delete: if isAdmin();
+    }
+
+    // ==== EXPORTS ====
+    // Formato: /exports/{exportId}
+    match /exports/{exportId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser();
+      allow delete: if isAdmin();
+    }
+
+    // Regla por defecto: denegar todo lo que no esté explícitamente permitido
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

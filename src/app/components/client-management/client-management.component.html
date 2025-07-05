@@ -1,0 +1,152 @@
+<div class="client-management">
+  <div class="header">
+    <h2>Gestión de Clientes</h2>
+    <button class="btn btn-primary" (click)="showAddForm()">
+      <i class="icon">➕</i>
+      Agregar Cliente
+    </button>
+  </div>
+
+  <!-- Buscador -->
+  <div class="search-section">
+    <input 
+      type="text" 
+      placeholder="Buscar por nombre, email, teléfono, DNI o dirección..."
+      [(ngModel)]="searchTerm"
+      (input)="filterClients()"
+      class="search-input">
+  </div>
+
+  <!-- Mensajes -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+  <!-- Loader -->
+  <div class="loader" *ngIf="loading">Cargando...</div>
+
+  <!-- Formulario -->
+  <div class="form-modal" *ngIf="showForm">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editMode ? 'Editar' : 'Agregar' }} Cliente</h3>
+        <button class="close-btn" (click)="cancelForm()">×</button>
+      </div>
+
+      <form [formGroup]="clientForm" (ngSubmit)="saveClient()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre Completo *</label>
+            <input type="text" formControlName="name" required>
+          </div>
+
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" formControlName="email" required>
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input type="tel" formControlName="phone" required>
+          </div>
+
+          <div class="form-group">
+            <label>DNI/Cédula *</label>
+            <input type="text" formControlName="dni" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Dirección *</label>
+            <input type="text" formControlName="address" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Notas</label>
+            <textarea formControlName="notes" rows="3" placeholder="Información adicional del cliente..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelForm()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!clientForm.valid || loading">
+            {{ editMode ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de clientes -->
+  <div class="client-grid" *ngIf="!loading && !showForm">
+    <div class="client-card" *ngFor="let client of filteredClients">
+      <div class="client-header">
+        <h3>{{ client.name }}</h3>
+        <div class="client-actions">
+          <button 
+            class="btn btn-sm btn-secondary" 
+            (click)="editClient(client)"
+            *ngIf="isAdmin()"
+            title="Editar">
+            ✏️
+          </button>
+          <button 
+            class="btn btn-sm btn-danger" 
+            (click)="deleteClient(client)"
+            *ngIf="isAdmin()"
+            title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="client-details">
+        <div class="detail-row">
+          <i class="icon">📧</i>
+          <span class="value">{{ client.email }}</span>
+        </div>
+        <div class="detail-row">
+          <i class="icon">📞</i>
+          <span class="value">{{ formatPhoneNumber(client.phone) }}</span>
+        </div>
+        <div class="detail-row">
+          <i class="icon">🆔</i>
+          <span class="value">{{ client.dni }}</span>
+        </div>
+        <div class="detail-row">
+          <i class="icon">📍</i>
+          <span class="value">{{ client.address }}</span>
+        </div>
+      </div>
+
+      <div class="client-notes" *ngIf="client.notes">
+        <strong>Notas:</strong>
+        <p>{{ client.notes }}</p>
+      </div>
+
+      <div class="client-meta">
+        <small>Registrado: {{ client.createdAt | date:'short' }}</small>
+        <br>
+        <small>Actualizado: {{ client.updatedAt | date:'short' }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="!loading && !showForm && filteredClients.length === 0">
+    <h3>No hay clientes</h3>
+    <p>{{ clients.length === 0 ? 'No hay clientes registrados' : 'No hay clientes que coincidan con la búsqueda' }}</p>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-section" *ngIf="!loading && !showForm && clients.length > 0">
+    <div class="stat-card">
+      <h4>Total de Clientes</h4>
+      <span class="stat-number">{{ clients.length }}</span>
+    </div>
+    <div class="stat-card">
+      <h4>Resultados de Búsqueda</h4>
+      <span class="stat-number">{{ filteredClients.length }}</span>
+    </div>
+  </div>
+</div>

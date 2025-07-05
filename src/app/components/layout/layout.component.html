@@ -12,8 +12,52 @@
         <span>Dashboard</span>
       </a>
       
+      <!-- Vehículos - Todos pueden ver -->
+      <a routerLink="/vehicles" routerLinkActive="active" class="nav-item">
+        <i class="icon">🚗</i>
+        <span>Vehículos</span>
+      </a>
+      
+      <!-- Clientes - Todos pueden ver -->
+      <a routerLink="/clients" routerLinkActive="active" class="nav-item">
+        <i class="icon">👤</i>
+        <span>Clientes</span>
+      </a>
+      
+      <!-- Ventas - Todos pueden ver -->
+      <a routerLink="/sales" routerLinkActive="active" class="nav-item">
+        <i class="icon">💰</i>
+        <span>Ventas</span>
+      </a>
+      
+      <!-- Servicios - Todos pueden ver -->
+      <a routerLink="/services" routerLinkActive="active" class="nav-item">
+        <i class="icon">🔧</i>
+        <span>Servicios</span>
+      </a>
+      
+      <!-- Personal - Todos pueden ver -->
+      <a routerLink="/staff" routerLinkActive="active" class="nav-item">
+        <i class="icon">👷</i>
+        <span>Personal</span>
+      </a>
+      
+      <!-- Calendario - Todos pueden ver -->
+      <a routerLink="/calendar" routerLinkActive="active" class="nav-item">
+        <i class="icon">📅</i>
+        <span>Calendario</span>
+      </a>
+      
       <!-- Opciones solo para administradores -->
       <div *ngIf="isAdmin()">
+        <div class="nav-separator"></div>
+        
+        <!-- Finanzas - Solo admins -->
+        <a routerLink="/finances" routerLinkActive="active" class="nav-item">
+          <i class="icon">💎</i>
+          <span>Finanzas</span>
+        </a>
+        
         <a routerLink="/users" routerLinkActive="active" class="nav-item">
           <i class="icon">👥</i>
           <span>Gestión de Usuarios</span>
@@ -23,11 +67,11 @@
           <i class="icon">🔐</i>
           <span>Gestión de Roles</span>
         </a>
-      </div>
-      
-      <!-- Opciones para vendedores (ninguna por ahora) -->
-      <div *ngIf="isSeller()">
-        <!-- Futuras opciones para vendedores -->
+        
+        <a routerLink="/settings" routerLinkActive="active" class="nav-item">
+          <i class="icon">⚙️</i>
+          <span>Configuración</span>
+        </a>
       </div>
     </nav>
     

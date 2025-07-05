@@ -1,0 +1,270 @@
+<div class="staff-management">
+  <div class="header">
+    <h2>Gestión de Personal</h2>
+    <button class="btn-primary" (click)="openForm()">
+      <i class="icon">👤</i>
+      Agregar Personal
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <input
+        type="text"
+        placeholder="Buscar por nombre o email..."
+        [(ngModel)]="searchTerm"
+        class="search-input"
+        #searchInput
+      >
+      
+      <select [(ngModel)]="selectedSpecialty" class="filter-select">
+        <option value="">Todas las especialidades</option>
+        <option *ngFor="let specialty of specialties" [value]="specialty">
+          {{ specialty }}
+        </option>
+      </select>
+      
+      <select [(ngModel)]="selectedStatus" class="filter-select">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let status of statuses" [value]="status.value">
+          {{ status.label }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Lista de Personal -->
+  <div class="staff-list" *ngIf="staffMembers$ | async as staffMembers">
+    <div class="staff-cards">
+      <div
+        *ngFor="let staff of filterStaff(staffMembers)"
+        class="staff-card"
+        [class.inactive]="staff.status === 'inactive'"
+      >
+        <div class="staff-info">
+          <div class="staff-header">
+            <h3>{{ staff.name }}</h3>
+            <div class="status-badge" [style.background-color]="getStatusColor(staff.status)">
+              {{ getStatusLabel(staff.status) }}
+            </div>
+          </div>
+          
+          <div class="staff-details">
+            <div class="detail-row">
+              <strong>Especialidad:</strong>
+              <span>{{ staff.specialty }}</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="staff.email">
+              <strong>Email:</strong>
+              <span>{{ staff.email }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <strong>Teléfono:</strong>
+              <span>{{ staff.phone }}</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="staff.hourlyRate">
+              <strong>Tarifa/hora:</strong>
+              <span>${{ staff.hourlyRate }}</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="staff.commissionRate">
+              <strong>Comisión:</strong>
+              <span>{{ staff.commissionRate }}%</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="staff.notes">
+              <strong>Notas:</strong>
+              <span>{{ staff.notes }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="staff-actions">
+          <button class="btn-secondary" (click)="openForm(staff)">
+            <i class="icon">✏️</i>
+            Editar
+          </button>
+          
+          <button class="btn-info" (click)="viewSchedule(staff)">
+            <i class="icon">📅</i>
+            Agenda
+          </button>
+          
+          <div class="status-actions">
+            <button
+              *ngIf="staff.status !== 'available'"
+              class="btn-success"
+              (click)="updateStatus(staff, 'available')"
+            >
+              <i class="icon">✅</i>
+              Disponible
+            </button>
+            
+            <button
+              *ngIf="staff.status !== 'busy'"
+              class="btn-warning"
+              (click)="updateStatus(staff, 'busy')"
+            >
+              <i class="icon">⏳</i>
+              Ocupado
+            </button>
+            
+            <button
+              *ngIf="staff.status !== 'inactive'"
+              class="btn-danger"
+              (click)="updateStatus(staff, 'inactive')"
+            >
+              <i class="icon">❌</i>
+              Inactivo
+            </button>
+          </div>
+          
+          <button class="btn-danger" (click)="deleteStaff(staff)">
+            <i class="icon">🗑️</i>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mensaje cuando no hay personal -->
+    <div *ngIf="filterStaff(staffMembers).length === 0" class="empty-state">
+      <i class="icon">👥</i>
+      <h3>No hay personal registrado</h3>
+      <p>Comienza agregando el primer miembro del personal</p>
+    </div>
+  </div>
+
+  <!-- Modal del formulario -->
+  <div class="modal" [class.show]="isFormVisible">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ selectedStaff ? 'Editar' : 'Agregar' }} Personal</h3>
+        <button class="close-btn" (click)="closeForm()">×</button>
+      </div>
+      
+      <form [formGroup]="staffForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="name">Nombre *</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            placeholder="Nombre completo"
+            required
+          >
+          <div *ngIf="staffForm.get('name')?.invalid && staffForm.get('name')?.touched" 
+               class="error-message">
+            El nombre es requerido
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            placeholder="correo@ejemplo.com"
+          >
+          <div *ngIf="staffForm.get('email')?.invalid && staffForm.get('email')?.touched" 
+               class="error-message">
+            Ingrese un email válido
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">Teléfono *</label>
+          <input
+            type="tel"
+            id="phone"
+            formControlName="phone"
+            placeholder="1234567890"
+            required
+          >
+          <div *ngIf="staffForm.get('phone')?.invalid && staffForm.get('phone')?.touched" 
+               class="error-message">
+            Ingrese un teléfono válido (10 dígitos)
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="specialty">Especialidad *</label>
+          <select id="specialty" formControlName="specialty" required>
+            <option value="">Seleccione una especialidad</option>
+            <option *ngFor="let specialty of specialties" [value]="specialty">
+              {{ specialty }}
+            </option>
+          </select>
+          <div *ngIf="staffForm.get('specialty')?.invalid && staffForm.get('specialty')?.touched" 
+               class="error-message">
+            Seleccione una especialidad
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="status">Estado *</label>
+          <select id="status" formControlName="status" required>
+            <option *ngFor="let status of statuses" [value]="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hourlyRate">Tarifa por Hora</label>
+            <input
+              type="number"
+              id="hourlyRate"
+              formControlName="hourlyRate"
+              placeholder="0"
+              min="0"
+              step="0.01"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="commissionRate">Comisión (%)</label>
+            <input
+              type="number"
+              id="commissionRate"
+              formControlName="commissionRate"
+              placeholder="0"
+              min="0"
+              max="100"
+              step="0.1"
+            >
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="notes">Notas</label>
+          <textarea
+            id="notes"
+            formControlName="notes"
+            placeholder="Notas adicionales..."
+            rows="3"
+          ></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="staffForm.invalid || isLoading"
+          >
+            {{ isLoading ? 'Guardando...' : (selectedStaff ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

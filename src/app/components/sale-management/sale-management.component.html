@@ -1,0 +1,324 @@
+<div class="sale-management">
+  <div class="header">
+    <h2>Gestión de Ventas</h2>
+    <button class="btn btn-primary" *ngIf="isAdmin()" (click)="showAddForm()">
+      <i class="icon">➕</i>
+      Registrar Venta
+    </button>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-section">
+    <div class="stat-card">
+      <h3>{{ stats.totalSales }}</h3>
+      <p>Ventas Totales</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ formatCurrency(stats.totalAmount) }}</h3>
+      <p>Monto Total</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ formatCurrency(stats.totalCommission) }}</h3>
+      <p>Comisiones</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ stats.monthlySales }}</h3>
+      <p>Ventas del Mes</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ formatCurrency(stats.monthlyAmount) }}</h3>
+      <p>Monto del Mes</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ formatCurrency(stats.averageTicket) }}</h3>
+      <p>Ticket Promedio</p>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <input 
+        type="text" 
+        placeholder="Buscar por cliente, vehículo o notas..."
+        [(ngModel)]="searchTerm"
+        (input)="filterSales()"
+        class="search-input">
+    </div>
+    
+    <div class="filter-group">
+      <select 
+        [(ngModel)]="statusFilter"
+        (change)="filterSales()"
+        class="filter-select">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let status of statuses" [value]="status.value">
+          {{ status.label }}
+        </option>
+      </select>
+    </div>            <div class="filter-group">
+              <select 
+                [(ngModel)]="sellerFilter"
+                (change)="filterSales()"
+                class="filter-select">
+                <option value="">Todos los vendedores</option>
+                <option *ngFor="let seller of sellers" [value]="seller.uid">
+                  {{ seller.name }}
+                </option>
+              </select>
+            </div>
+
+    <div class="filter-group">
+      <input 
+        type="date" 
+        [(ngModel)]="dateFromFilter"
+        (change)="filterSales()"
+        placeholder="Desde"
+        class="date-input">
+    </div>
+
+    <div class="filter-group">
+      <input 
+        type="date" 
+        [(ngModel)]="dateToFilter"
+        (change)="filterSales()"
+        placeholder="Hasta"
+        class="date-input">
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+  <!-- Loader -->
+  <div class="loader" *ngIf="loading">Cargando...</div>
+
+  <!-- Formulario -->
+  <div class="form-modal" *ngIf="showForm">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editMode ? 'Editar' : 'Registrar' }} Venta</h3>
+        <button class="close-btn" (click)="cancelForm()">×</button>
+      </div>
+
+      <form [formGroup]="saleForm" (ngSubmit)="saveSale()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Vehículo *</label>
+            <select formControlName="vehicleId" (change)="onVehicleChange()">
+              <option value="">Seleccionar vehículo</option>
+              <option *ngFor="let vehicle of getAvailableVehicles()" [value]="vehicle.id">
+                {{ vehicle.brand }} {{ vehicle.model }} {{ vehicle.year }} - {{ formatCurrency(vehicle.price) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Cliente *</label>
+            <select formControlName="clientId">
+              <option value="">Seleccionar cliente</option>
+              <option *ngFor="let client of clients" [value]="client.id">
+                {{ client.name }} - {{ client.email }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Vendedor *</label>
+            <select formControlName="sellerId" (change)="calculateCommission()">
+              <option value="">Seleccionar vendedor</option>
+              <option *ngFor="let seller of sellers" [value]="seller.uid">
+                {{ seller.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Precio de Venta *</label>
+            <input 
+              type="number" 
+              formControlName="salePrice" 
+              (input)="calculateCommission()"
+              min="0" 
+              step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label>Comisión ({{ commissionPercentage }}%)</label>
+            <input 
+              type="number" 
+              formControlName="commissionAmount"
+              readonly
+              class="readonly-input">
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de Venta *</label>
+            <input type="date" formControlName="saleDate">
+          </div>
+
+          <div class="form-group">
+            <label>Estado *</label>
+            <select formControlName="status">
+              <option *ngFor="let status of statuses" [value]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Método de Pago</label>
+            <select formControlName="paymentMethod">
+              <option value="">Seleccionar método</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="cheque">Cheque</option>
+              <option value="credito">Crédito</option>
+              <option value="mixto">Mixto</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Detalles de Financiamiento</label>
+          <textarea formControlName="financingDetails" rows="3" 
+                    placeholder="Información sobre financiamiento, banco, plazos, etc."></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Notas</label>
+          <textarea formControlName="notes" rows="3" 
+                    placeholder="Notas adicionales sobre la venta"></textarea>
+        </div>
+
+        <!-- Distribución de comisiones -->
+        <div class="commission-info" *ngIf="saleForm.get('commissionAmount')?.value > 0">
+          <h4>Distribución de Comisiones</h4>
+          <div class="commission-grid">
+            <div class="commission-item">
+              <span>Sale In ({{ commissionDistribution.saleIn }}%)</span>
+              <span class="amount">{{ formatCurrency(getCommissionAmount('saleIn')) }}</span>
+            </div>
+            <div class="commission-item">
+              <span>Sale Off ({{ commissionDistribution.saleOff }}%)</span>
+              <span class="amount">{{ formatCurrency(getCommissionAmount('saleOff')) }}</span>
+            </div>
+            <div class="commission-item">
+              <span>Empresa ({{ commissionDistribution.company }}%)</span>
+              <span class="amount">{{ formatCurrency(getCommissionAmount('company')) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelForm()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!saleForm.valid || loading">
+            {{ editMode ? 'Actualizar' : 'Registrar' }} Venta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de ventas -->
+  <div class="sales-list" *ngIf="!loading && !showForm">
+    <div class="sales-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Vehículo</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Precio</th>
+            <th>Comisión</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sale of filteredSales">
+            <td>{{ formatDate(sale.saleDate) }}</td>
+            <td>
+              <div class="vehicle-info">
+                <strong>{{ getVehicleName(sale.vehicleId) }}</strong>
+                <small>{{ getVehicleDetails(sale.vehicleId) }}</small>
+              </div>
+            </td>
+            <td>{{ getClientName(sale.clientId) }}</td>
+            <td>{{ getSellerName(sale.sellerId) }}</td>
+            <td class="price">{{ formatCurrency(sale.salePrice) }}</td>
+            <td class="commission">{{ formatCurrency(sale.commissionAmount) }}</td>
+            <td>
+              <span class="status-badge" [class]="getStatusClass(sale.status)">
+                {{ getStatusLabel(sale.status) }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button 
+                  class="btn-action btn-edit" 
+                  (click)="editSale(sale)"
+                  *ngIf="canEdit(sale)"
+                  title="Editar">
+                  ✏️
+                </button>
+                <button 
+                  class="btn-action btn-delete" 
+                  (click)="deleteSale(sale)"
+                  *ngIf="canDelete(sale)"
+                  title="Eliminar">
+                  🗑️
+                </button>
+                <button 
+                  class="btn-action btn-details" 
+                  (click)="viewDetails(sale)"
+                  title="Ver detalles">
+                  👁️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="no-results" *ngIf="filteredSales.length === 0">
+      <p>No se encontraron ventas</p>
+    </div>
+  </div>
+
+  <!-- Ranking de Vendedores -->
+  <div class="seller-ranking" *ngIf="!loading && !showForm">
+    <h3>Ranking de Vendedores</h3>
+    <div class="ranking-list">
+      <div class="ranking-item" *ngFor="let seller of getSellerRanking(); let i = index">
+        <div class="rank">{{ i + 1 }}</div>
+        <div class="seller-info">
+          <strong>{{ seller.name }}</strong>
+          <small>{{ seller.salesCount }} ventas</small>
+        </div>
+        <div class="seller-stats">
+          <div class="stat">
+            <span class="label">Ventas:</span>
+            <span class="value">{{ seller.salesCount }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Monto:</span>
+            <span class="value">{{ formatCurrency(seller.totalAmount) }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Comisiones:</span>
+            <span class="value">{{ formatCurrency(seller.totalCommission) }}</span>
+          </div>
+        </div>
+        <div class="seller-stars">
+          <span *ngFor="let star of getStars(seller.salesCount)">⭐</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
