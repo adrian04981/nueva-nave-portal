@@ -1,4 +1,7 @@
-<div class="layout-container" [ngClass]="getDeviceClass()">
+<div class="layout-container" 
+     [ngClass]="getDeviceClass()" 
+     [class.mobile]="isMobile"
+     [class.sidebar-open]="sidebarOpen">
   <!-- Overlay para cerrar sidebar en móviles -->
   <div class="sidebar-overlay" 
        [class.active]="sidebarOpen && isMobile" 
@@ -134,7 +137,7 @@
     <!-- Header -->
     <header class="header">
       <button class="menu-btn" (click)="toggleSidebar()" aria-label="Abrir menú">
-        <span class="hamburger">
+        <span class="hamburger" [class.active]="sidebarOpen">
           <span></span>
           <span></span>
           <span></span>

@@ -1,1 +1,13 @@
+# Redirects for PWA and SPA support
+/manifest.json /manifest.json 200
+/sw.js /ngsw-worker.js 200
+/ngsw.json /ngsw.json 200
+/safety-worker.js /safety-worker.js 200
+/worker-basic.min.js /worker-basic.min.js 200
+
+# Static assets
+/assets/* /assets/:splat 200
+/favicon.ico /favicon.ico 200
+
+# Angular routes - SPA fallback
 /* /index.html 200

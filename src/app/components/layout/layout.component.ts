@@ -21,6 +21,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   isStandalone$ = this.pwaService.isStandalone$;
   isInstallable$ = this.pwaService.isInstallable$;
   private destroy$ = new Subject<void>();
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private isDragging = false;
 
   constructor(
     private authService: AuthService,
@@ -32,6 +35,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.checkDevice();
     this.pwaService.setupIOSPWA();
+    this.setupTouchGestures();
     
     // Suscribirse a cambios de estado PWA
     this.isIOS$.pipe(takeUntil(this.destroy$)).subscribe(isIOS => {
@@ -49,6 +53,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.checkDevice();
+    // Auto-cerrar sidebar en escritorio
+    if (!this.isMobile && this.sidebarOpen) {
+      this.sidebarOpen = false;
+    }
   }
 
   @HostListener('window:orientationchange', ['$event'])
@@ -56,24 +64,104 @@ export class LayoutComponent implements OnInit, OnDestroy {
     // Timeout para esperar a que se complete el cambio de orientación
     setTimeout(() => {
       this.checkDevice();
+      // Cerrar sidebar al cambiar orientación en móvil
+      if (this.isMobile && this.sidebarOpen) {
+        this.sidebarOpen = false;
+      }
     }, 100);
   }
 
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent) {
+    if (this.sidebarOpen && this.isMobile) {
+      this.closeSidebar();
+    }
+  }
+
+  private setupTouchGestures() {
+    // Solo para dispositivos móviles
+    if (this.isMobile) {
+      document.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: true });
+      document.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
+      document.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: true });
+    }
+  }
+
+  private onTouchStart(event: TouchEvent) {
+    if (!this.isMobile) return;
+    
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartY = event.touches[0].clientY;
+    this.isDragging = false;
+  }
+
+  private onTouchMove(event: TouchEvent) {
+    if (!this.isMobile || !this.touchStartX) return;
+    
+    const touchX = event.touches[0].clientX;
+    const touchY = event.touches[0].clientY;
+    const deltaX = touchX - this.touchStartX;
+    const deltaY = touchY - this.touchStartY;
+    
+    // Solo considerar swipe horizontal si no es vertical
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      this.isDragging = true;
+      
+      // Swipe desde el borde izquierdo para abrir
+      if (this.touchStartX < 20 && deltaX > 50 && !this.sidebarOpen) {
+        event.preventDefault();
+        this.openSidebar();
+      }
+      
+      // Swipe hacia la izquierda para cerrar cuando está abierto
+      if (this.sidebarOpen && deltaX < -50) {
+        event.preventDefault();
+        this.closeSidebar();
+      }
+    }
+  }
+
+  private onTouchEnd(event: TouchEvent) {
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.isDragging = false;
+  }
+
   private checkDevice() {
+    const wasMobile = this.isMobile;
     this.isMobile = window.innerWidth < 768;
     
-    if (this.isMobile && this.sidebarOpen) {
-      // Cerrar sidebar automáticamente en móviles
+    // Si cambió de móvil a escritorio, asegurar que el sidebar esté visible
+    if (wasMobile && !this.isMobile) {
       this.sidebarOpen = false;
     }
   }
 
   toggleSidebar() {
     this.sidebarOpen = !this.sidebarOpen;
+    this.updateBodyClass();
+  }
+
+  openSidebar() {
+    this.sidebarOpen = true;
+    this.updateBodyClass();
   }
 
   closeSidebar() {
     this.sidebarOpen = false;
+    this.updateBodyClass();
+  }
+
+  private updateBodyClass() {
+    if (this.isMobile) {
+      if (this.sidebarOpen) {
+        document.body.classList.add('sidebar-open', 'no-scroll');
+      } else {
+        document.body.classList.remove('sidebar-open', 'no-scroll');
+      }
+    } else {
+      document.body.classList.remove('sidebar-open', 'no-scroll');
+    }
   }
 
   async logout() {
