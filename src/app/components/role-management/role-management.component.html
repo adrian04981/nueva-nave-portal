@@ -1,20 +1,41 @@
 <div class="role-management-container">
+  <!-- Header -->
   <div class="page-header">
     <h2>Gestión de Roles</h2>
-    <div class="header-info">
-      <p>Administra los roles y permisos del sistema</p>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="showAddForm()" *ngIf="isAdmin()">
+        <i class="icon">➕</i>
+        Crear Rol
+      </button>
     </div>
   </div>
 
-  <div class="roles-grid">
+  <!-- Messages -->
+  <div class="alert alert-error" *ngIf="error">
+    {{ error }}
+  </div>
+  <div class="alert alert-success" *ngIf="success">
+    {{ success }}
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="loading">
+    <p>Cargando roles...</p>
+  </div>
+
+  <!-- Roles Grid -->
+  <div class="roles-grid" *ngIf="!loading && !showForm && !showDetails">
     <div class="role-card" *ngFor="let role of roles">
       <div class="role-header">
         <div class="role-icon">{{ getRoleIcon(role.name) }}</div>
         <div class="role-title">
           <h3>{{ role.displayName }}</h3>
-          <span class="role-badge" [style.background-color]="getRoleColor(role.name)">
-            {{ role.name }}
-          </span>
+          <div class="role-badges">
+            <span class="role-badge" [style.background-color]="getRoleColor(role.name)">
+              {{ role.name }}
+            </span>
+            <span class="system-badge" *ngIf="role.isSystemRole">Sistema</span>
+          </div>
         </div>
       </div>
       
@@ -33,46 +54,214 @@
         </div>
       </div>
       
-      <div class="role-permissions">
-        <h4>Permisos</h4>
-        <ul class="permissions-list">
-          <li *ngFor="let permission of role.permissions" class="permission-item">
-            <span class="permission-check">✓</span>
-            <span class="permission-text">{{ permission }}</span>
-          </li>
-        </ul>
+      <div class="role-permissions-preview">
+        <h4>Permisos principales</h4>
+        <div class="permissions-tags">
+          <span class="permission-tag" *ngFor="let permission of role.permissions.slice(0, 3)">
+            {{ getPermissionDisplayName(permission) }}
+          </span>
+          <span class="permission-tag more" *ngIf="role.permissions.length > 3">
+            +{{ role.permissions.length - 3 }} más
+          </span>
+        </div>
       </div>
       
       <div class="role-actions">
-        <button class="btn btn-outline" disabled>
+        <button class="btn btn-outline" (click)="viewDetails(role)">
+          <i class="icon">👁️</i>
           Ver detalles
         </button>
-        <button class="btn btn-outline" disabled>
-          Modificar
+        <button class="btn btn-outline" (click)="editRole(role)" *ngIf="canEditRole(role)">
+          <i class="icon">✏️</i>
+          Editar
+        </button>
+        <button class="btn btn-outline btn-danger" (click)="deleteRole(role)" *ngIf="canDeleteRole(role)">
+          <i class="icon">🗑️</i>
+          Eliminar
         </button>
       </div>
     </div>
   </div>
-  
-  <div class="info-section">
-    <div class="info-card">
-      <h3>📋 Información sobre Roles</h3>
-      <ul class="info-list">
-        <li><strong>Administrador:</strong> Tiene acceso completo al sistema, puede gestionar usuarios, roles y configuraciones.</li>
-        <li><strong>Vendedor:</strong> Acceso limitado, principalmente para funcionalidades relacionadas con ventas (próximamente).</li>
-        <li>Los roles determinan qué páginas y funcionalidades puede acceder cada usuario.</li>
-        <li>Solo los administradores pueden acceder a la gestión de usuarios y roles.</li>
-      </ul>
+
+  <!-- Create/Edit Form -->
+  <div class="form-modal" *ngIf="showForm">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editMode ? 'Editar Rol' : 'Crear Nuevo Rol' }}</h3>
+        <button class="close-btn" (click)="closeForm()">×</button>
+      </div>
+
+      <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
+        <div class="form-content">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h4>Información Básica</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="name">Nombre del Rol *</label>
+                <input 
+                  type="text" 
+                  id="name"
+                  formControlName="name"
+                  placeholder="ej: gerente, contador"
+                  [readonly]="editMode && selectedRole?.isSystemRole">
+                <small>Solo letras, números y guiones bajos. No espacios.</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="displayName">Nombre para Mostrar *</label>
+                <input 
+                  type="text" 
+                  id="displayName"
+                  formControlName="displayName"
+                  placeholder="ej: Gerente de Ventas">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="description">Descripción *</label>
+              <textarea 
+                id="description"
+                formControlName="description"
+                rows="3"
+                placeholder="Describe las responsabilidades y alcance de este rol"></textarea>
+            </div>
+          </div>
+
+          <!-- Permissions -->
+          <div class="form-section">
+            <h4>Permisos y Accesos</h4>
+            <div class="permissions-container">
+              <div class="permission-category" *ngFor="let category of permissionCategories">
+                <div class="category-header">
+                  <h5>{{ category }}</h5>
+                  <div class="category-actions">
+                    <button type="button" class="btn-link" (click)="selectAllPermissions(category)">
+                      Seleccionar todos
+                    </button>
+                    <button type="button" class="btn-link" (click)="deselectAllPermissions(category)">
+                      Deseleccionar todos
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="permissions-grid">
+                  <div class="permission-item" *ngFor="let permission of getPermissionsByCategory(category)">
+                    <label class="permission-label">
+                      <input 
+                        type="checkbox" 
+                        [checked]="isPermissionSelected(permission.id)"
+                        (change)="togglePermission(permission.id)">
+                      <span class="permission-info">
+                        <strong>{{ permission.displayName }}</strong>
+                        <small>{{ permission.description }}</small>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeForm()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="!roleForm.valid || loading">
+            {{ editMode ? 'Actualizar' : 'Crear' }} Rol
+          </button>
+        </div>
+      </form>
     </div>
-    
-    <div class="info-card">
-      <h3>🔒 Seguridad</h3>
-      <ul class="info-list">
-        <li>Los permisos se validan tanto en el frontend como en el backend.</li>
-        <li>Los usuarios inactivos no pueden acceder al sistema.</li>
-        <li>Los guardias de ruta protegen las páginas según el rol del usuario.</li>
-        <li>Cada acción crítica requiere autorización específica.</li>
-      </ul>
+  </div>
+
+  <!-- Role Details Modal -->
+  <div class="details-modal" *ngIf="showDetails && selectedRole">
+    <div class="details-container">
+      <div class="details-header">
+        <div class="role-title-large">
+          <div class="role-icon-large">{{ getRoleIcon(selectedRole.name) }}</div>
+          <div>
+            <h3>{{ selectedRole.displayName }}</h3>
+            <div class="role-badges">
+              <span class="role-badge" [style.background-color]="getRoleColor(selectedRole.name)">
+                {{ selectedRole.name }}
+              </span>
+              <span class="system-badge" *ngIf="selectedRole.isSystemRole">Sistema</span>
+            </div>
+          </div>
+        </div>
+        <button class="close-btn" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="details-content">
+        <div class="detail-section">
+          <h4>Descripción</h4>
+          <p>{{ selectedRole.description }}</p>
+        </div>
+
+        <div class="detail-section">
+          <h4>Estadísticas</h4>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number">{{ selectedRole.userCount }}</div>
+              <div class="stat-label">Usuarios asignados</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">{{ selectedRole.permissions.length }}</div>
+              <div class="stat-label">Permisos totales</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Permisos y Accesos</h4>
+          <div class="permissions-by-category">
+            <div class="category-section" *ngFor="let category of permissionCategories">
+              <ng-container *ngIf="hasPermissionsInCategory(category)">
+                <h5>{{ category }}</h5>
+                <div class="permissions-list">
+                  <div class="permission-detail" *ngFor="let permission of getPermissionsByCategory(category)">
+                    <div class="permission-status" *ngIf="selectedRole.permissions.includes(permission.id)">
+                      <span class="permission-check">✓</span>
+                      <div class="permission-info">
+                        <strong>{{ permission.displayName }}</strong>
+                        <small>{{ permission.description }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Información del Sistema</h4>
+          <div class="system-info">
+            <div class="info-item">
+              <strong>Tipo:</strong> {{ selectedRole.isSystemRole ? 'Rol del Sistema' : 'Rol Personalizado' }}
+            </div>
+            <div class="info-item">
+              <strong>Creado:</strong> {{ selectedRole.createdAt | date:'short' }}
+            </div>
+            <div class="info-item">
+              <strong>Última modificación:</strong> {{ selectedRole.updatedAt | date:'short' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="details-actions">
+        <button class="btn btn-secondary" (click)="closeDetails()">
+          Cerrar
+        </button>
+        <button class="btn btn-primary" (click)="editRole(selectedRole); closeDetails()" *ngIf="canEditRole(selectedRole)">
+          <i class="icon">✏️</i>
+          Editar Rol
+        </button>
+      </div>
     </div>
   </div>
 </div>

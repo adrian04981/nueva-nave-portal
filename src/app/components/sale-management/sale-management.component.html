@@ -225,6 +225,7 @@
 
   <!-- Lista de ventas -->
   <div class="sales-list" *ngIf="!loading && !showForm">
+    <!-- Desktop Table View -->
     <div class="sales-table">
       <table>
         <thead>
@@ -284,6 +285,68 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="sales-cards">
+      <div class="sale-card" *ngFor="let sale of filteredSales">
+        <div class="sale-header">
+          <div class="sale-info">
+            <div class="vehicle-name">{{ getVehicleName(sale.vehicleId) }}</div>
+            <div class="sale-date">{{ formatDate(sale.saleDate) }}</div>
+          </div>
+          <div class="sale-actions">
+            <button 
+              class="btn-action btn-edit" 
+              (click)="editSale(sale)"
+              *ngIf="canEdit(sale)"
+              title="Editar">
+              ✏️
+            </button>
+            <button 
+              class="btn-action btn-delete" 
+              (click)="deleteSale(sale)"
+              *ngIf="canDelete(sale)"
+              title="Eliminar">
+              🗑️
+            </button>
+            <button 
+              class="btn-action btn-details" 
+              (click)="viewDetails(sale)"
+              title="Ver detalles">
+              👁️
+            </button>
+          </div>
+        </div>
+        
+        <div class="sale-details">
+          <div class="detail-item">
+            <div class="label">Precio</div>
+            <div class="value price">{{ formatCurrency(sale.salePrice) }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">Comisión</div>
+            <div class="value">{{ formatCurrency(sale.commissionAmount) }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">Vendedor</div>
+            <div class="value">{{ getSellerName(sale.sellerId) }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">Vehículo</div>
+            <div class="value">{{ getVehicleDetails(sale.vehicleId) }}</div>
+          </div>
+        </div>
+        
+        <div class="sale-footer">
+          <div class="client-info">
+            <strong>{{ getClientName(sale.clientId) }}</strong>
+          </div>
+          <span class="status-badge" [class]="getStatusClass(sale.status)">
+            {{ getStatusLabel(sale.status) }}
+          </span>
+        </div>
+      </div>
     </div>
 
     <div class="no-results" *ngIf="filteredSales.length === 0">

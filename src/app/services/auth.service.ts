@@ -19,6 +19,8 @@ export interface UserProfile {
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<UserProfile | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private readonly USER_STORAGE_KEY = 'nueva_nave_user';
+  private readonly SESSION_STORAGE_KEY = 'nueva_nave_session';
 
   constructor(
     private auth: Auth,
@@ -26,15 +28,62 @@ export class AuthService {
     private router: Router
   ) {
     this.initAuthListener();
+    this.loadStoredUser();
+  }
+
+  private loadStoredUser() {
+    try {
+      const storedUser = localStorage.getItem(this.USER_STORAGE_KEY);
+      const sessionToken = sessionStorage.getItem(this.SESSION_STORAGE_KEY);
+      
+      if (storedUser && sessionToken) {
+        const userProfile = JSON.parse(storedUser) as UserProfile;
+        // Verificar que la sesión no haya expirado (24 horas)
+        const sessionData = JSON.parse(sessionToken);
+        const sessionTime = new Date(sessionData.timestamp);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - sessionTime.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursDiff < 24) {
+          this.currentUserSubject.next(userProfile);
+        } else {
+          this.clearStoredSession();
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando usuario almacenado:', error);
+      this.clearStoredSession();
+    }
+  }
+
+  private storeUser(userProfile: UserProfile) {
+    try {
+      localStorage.setItem(this.USER_STORAGE_KEY, JSON.stringify(userProfile));
+      sessionStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        uid: userProfile.uid
+      }));
+    } catch (error) {
+      console.error('Error almacenando usuario:', error);
+    }
+  }
+
+  private clearStoredSession() {
+    localStorage.removeItem(this.USER_STORAGE_KEY);
+    sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
   }
 
   private initAuthListener() {
     onAuthStateChanged(this.auth, async (user: User | null) => {
       if (user) {
         const userProfile = await this.getUserProfile(user.uid);
-        this.currentUserSubject.next(userProfile);
+        if (userProfile) {
+          this.currentUserSubject.next(userProfile);
+          this.storeUser(userProfile);
+        }
       } else {
         this.currentUserSubject.next(null);
+        this.clearStoredSession();
       }
     });
   }
@@ -48,7 +97,9 @@ export class AuthService {
         await this.logout();
         throw new Error('Usuario inactivo');
       }
-      
+
+      this.currentUserSubject.next(userProfile);
+      this.storeUser(userProfile);
       this.router.navigate(['/dashboard']);
     } catch (error) {
       console.error('Error en login:', error);
@@ -60,6 +111,7 @@ export class AuthService {
     try {
       await signOut(this.auth);
       this.currentUserSubject.next(null);
+      this.clearStoredSession();
       this.router.navigate(['/login']);
     } catch (error) {
       console.error('Error en logout:', error);

@@ -19,9 +19,9 @@
       >
       
       <select [(ngModel)]="selectedSpecialty" class="filter-select">
-        <option value="">Todas las especialidades</option>
-        <option *ngFor="let specialty of specialties" [value]="specialty">
-          {{ specialty }}
+        <option value="">Todos los servicios</option>
+        <option *ngFor="let specialty of availableSpecialties" [value]="specialty.id">
+          {{ specialty.name }}
         </option>
       </select>
       
@@ -52,8 +52,21 @@
           
           <div class="staff-details">
             <div class="detail-row">
-              <strong>Especialidad:</strong>
-              <span>{{ staff.specialty }}</span>
+              <strong>Servicio Principal:</strong>
+              <span>{{ getSpecialtyName(staff.specialty) }}</span>
+            </div>
+            
+            <div class="detail-row" *ngIf="staff.specialties && staff.specialties.length > 1">
+              <strong>Servicios:</strong>
+              <div class="specialties-tags">
+                <span 
+                  *ngFor="let specialtyId of staff.specialties" 
+                  class="specialty-tag"
+                  [class.primary]="specialtyId === staff.specialty"
+                >
+                  {{ getSpecialtyName(specialtyId) }}
+                </span>
+              </div>
             </div>
             
             <div class="detail-row" *ngIf="staff.email">
@@ -193,16 +206,56 @@
         </div>
         
         <div class="form-group">
-          <label for="specialty">Especialidad *</label>
-          <select id="specialty" formControlName="specialty" required>
-            <option value="">Seleccione una especialidad</option>
-            <option *ngFor="let specialty of specialties" [value]="specialty">
-              {{ specialty }}
+          <label for="specialty">Servicio Principal *</label>
+          <select 
+            id="specialty" 
+            formControlName="specialty" 
+            (change)="onMainSpecialtyChange()"
+            required
+          >
+            <option value="">Seleccione servicio principal</option>
+            <option *ngFor="let specialty of availableSpecialties" [value]="specialty.id">
+              {{ specialty.name }}
             </option>
           </select>
           <div *ngIf="staffForm.get('specialty')?.invalid && staffForm.get('specialty')?.touched" 
                class="error-message">
-            Seleccione una especialidad
+            Seleccione un servicio principal
+          </div>
+          <small class="help-text">Este será el servicio principal que realiza el empleado</small>
+        </div>
+
+        <div class="form-group">
+          <label>Servicios Adicionales</label>
+          <div class="specialties-selection">
+            <div class="specialty-checkbox" *ngFor="let specialty of availableSpecialties">
+              <label>
+                <input 
+                  type="checkbox" 
+                  [checked]="isSpecialtySelected(specialty.id)"
+                  (change)="toggleSpecialty(specialty.id)"
+                >
+                <span class="checkmark"></span>
+                <div class="specialty-info">
+                  <strong>{{ specialty.name }}</strong>
+                  <small>{{ specialty.description }}</small>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <div class="selected-specialties" *ngIf="specialtiesFormArray.length > 0">
+            <h4>Servicios Seleccionados:</h4>
+            <div class="specialties-tags">
+              <span 
+                *ngFor="let specialtyId of specialtiesFormArray.value; let i = index" 
+                class="specialty-tag"
+                [class.primary]="specialtyId === staffForm.get('specialty')?.value"
+              >
+                {{ getSpecialtyName(specialtyId) }}
+                <button type="button" class="remove-tag" (click)="removeSpecialty(i)">×</button>
+              </span>
+            </div>
           </div>
         </div>
         

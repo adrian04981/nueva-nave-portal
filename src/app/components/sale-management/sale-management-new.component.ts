@@ -6,11 +6,10 @@ import { SaleService } from '../../services/sale.service';
 import { VehicleService } from '../../services/vehicle.service';
 import { ClientService } from '../../services/client.service';
 import { UserService } from '../../services/user.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserProfile } from '../../services/auth.service';
 import { Sale } from '../../interfaces/sale.interface';
 import { Vehicle } from '../../interfaces/vehicle.interface';
 import { Client } from '../../interfaces/client.interface';
-import { User } from '../../interfaces/user.interface';
 
 @Component({
   selector: 'app-sale-management',
@@ -24,7 +23,7 @@ export class SaleManagementComponent implements OnInit {
   filteredSales: Sale[] = [];
   vehicles: Vehicle[] = [];
   clients: Client[] = [];
-  sellers: User[] = [];
+  sellers: UserProfile[] = [];
   
   loading = false;
   error = '';
@@ -263,6 +262,11 @@ export class SaleManagementComponent implements OnInit {
   }
 
   async deleteSale(sale: Sale) {
+    if (!sale.id) {
+      this.error = 'No se puede eliminar una venta sin ID';
+      return;
+    }
+
     if (!confirm('¿Está seguro de que desea eliminar esta venta?')) {
       return;
     }
@@ -360,7 +364,7 @@ export class SaleManagementComponent implements OnInit {
   }
 
   getSellerName(sellerId: string): string {
-    const seller = this.sellers.find(s => s.id === sellerId);
+    const seller = this.sellers.find(s => s.uid === sellerId);
     return seller ? seller.name : 'Vendedor no encontrado';
   }
 
@@ -375,7 +379,7 @@ export class SaleManagementComponent implements OnInit {
 
   getSellerRanking() {
     const sellerStats = this.sellers.map(seller => {
-      const sellerSales = this.sales.filter(sale => sale.sellerId === seller.id);
+      const sellerSales = this.sales.filter(sale => sale.sellerId === seller.uid);
       return {
         ...seller,
         salesCount: sellerSales.length,

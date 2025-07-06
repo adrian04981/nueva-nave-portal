@@ -90,11 +90,14 @@ export class SaleManagementComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.setupIOSOptimizations();
+    this.preventIOSZoom();
+    this.setupTouchHandling();
+    
     this.loadSales();
     this.loadVehicles();
     this.loadClients();
     this.loadSellers();
-    this.calculateStats();
   }
 
   // Métodos de carga
@@ -355,7 +358,7 @@ export class SaleManagementComponent implements OnInit {
 
   getVehicleDetails(vehicleId: string): string {
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
-    return vehicle ? `${vehicle.year} - ${vehicle.color}` : '';
+    return vehicle ? `${vehicle.year} - ${vehicle.color}` : 'N/A';
   }
 
   getClientName(clientId: string): string {
@@ -369,8 +372,13 @@ export class SaleManagementComponent implements OnInit {
   }
 
   getStatusLabel(status: string): string {
-    const statusObj = this.statuses.find(s => s.value === status);
-    return statusObj ? statusObj.label : status;
+    const statusMap: { [key: string]: string } = {
+      'pendiente': 'Pendiente',
+      'completada': 'Completada',
+      'cancelada': 'Cancelada',
+      'en_proceso': 'En Proceso'
+    };
+    return statusMap[status] || status;
   }
 
   getStatusClass(status: string): string {
@@ -428,8 +436,55 @@ export class SaleManagementComponent implements OnInit {
     });
   }
 
+  // Métodos de vista de detalles
   viewDetails(sale: Sale) {
     // Implementar vista de detalles (modal o navegación)
-    console.log('Ver detalles de venta:', sale);
+    console.log('Viewing details for sale:', sale);
+    // TODO: Implementar modal con detalles completos de la venta
+  }
+
+  // iOS and PWA optimization methods
+  private detectIOSDevice(): boolean {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  }
+
+  private isStandalone(): boolean {
+    return (window.navigator as any).standalone || 
+           window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  private setupIOSOptimizations(): void {
+    if (this.detectIOSDevice()) {
+      document.body.classList.add('ios-device');
+      
+      if (this.isStandalone()) {
+        document.body.classList.add('standalone-app');
+      }
+    }
+  }
+
+  private preventIOSZoom(): void {
+    // Prevent zoom on form inputs for iOS
+    const inputs = document.querySelectorAll('input[type="number"], input[type="text"], select, textarea');
+    inputs.forEach(input => {
+      input.addEventListener('touchstart', () => {
+        const fontSize = window.getComputedStyle(input).fontSize;
+        if (parseFloat(fontSize) < 16) {
+          (input as HTMLElement).style.fontSize = '16px';
+        }
+      });
+    });
+  }
+
+  // Touch handling for better mobile experience
+  private setupTouchHandling(): void {
+    // Prevent double-tap zoom on buttons
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+      button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        button.click();
+      });
+    });
   }
 }

@@ -8,6 +8,24 @@
   "theme_color": "#3498db",
   "orientation": "portrait-primary",
   "scope": "/",
+  "lang": "es",
+  "dir": "ltr",
+  "display_override": ["standalone", "minimal-ui"],
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "assets/screenshots/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "assets/screenshots/screenshot-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
   "icons": [
     {
       "src": "assets/icons/icon-72x72.png",
@@ -56,6 +74,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
+    },
+    {
+      "src": "assets/icons/apple-touch-icon-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

@@ -3,8 +3,8 @@ export interface Staff {
   name: string;
   phone: string;
   email?: string;
-  specialty: string; // Especialidad principal
-  specialties?: string[]; // Especialidades adicionales
+  specialty: string; // Servicio principal (requerido)
+  specialties: string[]; // Lista completa de servicios que puede realizar
   status: 'active' | 'inactive' | 'busy' | 'available';
   isActive: boolean;
   hourlyRate?: number; // Tarifa por hora
@@ -17,6 +17,14 @@ export interface Staff {
 export interface StaffFilter {
   name?: string;
   specialty?: string;
+  specialties?: string[];
   status?: string;
   isActive?: boolean;
+}
+
+export interface ServiceType {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
 }

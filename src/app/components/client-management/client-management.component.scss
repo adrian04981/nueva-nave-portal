@@ -2,6 +2,45 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  
+  // Safe area for iOS
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  
+  // Prevent horizontal scroll on iOS
+  overflow-x: hidden;
+  width: 100%;
+  
+  // iOS touch optimization
+  * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  input, textarea, select {
+    -webkit-user-select: auto;
+    user-select: auto;
+    font-size: 16px; // Prevents zoom on iOS
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  // Touch targets
+  .btn, button {
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+    
+    &:active {
+      transform: scale(0.98);
+    }
+  }
 }
 
 .header {
@@ -346,38 +385,68 @@
 /* Responsive */
 @media (max-width: 768px) {
   .client-management {
-    padding: 15px;
+    padding: 0.5rem;
   }
   
   .header {
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
     align-items: stretch;
+  }
+  
+  .search-input {
+    padding: 0.75rem;
+    font-size: 16px;
+    border-radius: 8px;
   }
   
   .client-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    
+    .client-card {
+      padding: 1rem;
+      border-radius: 12px;
+    }
   }
   
-  .form-container {
-    width: 95%;
+  .client-table {
+    display: none; // Hide table on mobile, show cards instead
   }
   
-  .form-grid {
-    grid-template-columns: 1fr;
+  .form-modal {
+    .modal-content {
+      width: 95%;
+      max-width: none;
+      margin: 0;
+      border-radius: 20px 20px 0 0;
+      max-height: 95vh;
+    }
+    
+    .modal-body {
+      padding: 1rem;
+      max-height: 75vh;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+      
+      input, select, textarea {
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// Extra small screens
+@media (max-width: 375px) {
+  .client-management {
+    padding: 0.25rem;
   }
   
-  .stats-section {
-    flex-direction: column;
-  }
-  
-  .client-header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  
-  .client-actions {
-    justify-content: center;
+  .client-card {
+    padding: 0.75rem;
   }
 }

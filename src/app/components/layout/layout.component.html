@@ -1,49 +1,75 @@
-<div class="layout-container">
+<div class="layout-container" [ngClass]="getDeviceClass()">
+  <!-- Overlay para cerrar sidebar en móviles -->
+  <div class="sidebar-overlay" 
+       [class.active]="sidebarOpen && isMobile" 
+       (click)="closeSidebar()"></div>
+
   <!-- Sidebar -->
   <aside class="sidebar" [class.open]="sidebarOpen">
     <div class="sidebar-header">
       <h3>Nueva Nave</h3>
-      <button class="close-btn" (click)="toggleSidebar()">×</button>
+      <button class="close-btn" (click)="toggleSidebar()" aria-label="Cerrar menú">×</button>
     </div>
     
     <nav class="sidebar-nav">
-      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+      <a routerLink="/dashboard" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">📊</i>
         <span>Dashboard</span>
       </a>
       
       <!-- Vehículos - Todos pueden ver -->
-      <a routerLink="/vehicles" routerLinkActive="active" class="nav-item">
+      <a routerLink="/vehicles" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">🚗</i>
         <span>Vehículos</span>
       </a>
       
       <!-- Clientes - Todos pueden ver -->
-      <a routerLink="/clients" routerLinkActive="active" class="nav-item">
+      <a routerLink="/clients" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">👤</i>
         <span>Clientes</span>
       </a>
       
       <!-- Ventas - Todos pueden ver -->
-      <a routerLink="/sales" routerLinkActive="active" class="nav-item">
+      <a routerLink="/sales" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">💰</i>
         <span>Ventas</span>
       </a>
       
       <!-- Servicios - Todos pueden ver -->
-      <a routerLink="/services" routerLinkActive="active" class="nav-item">
+      <a routerLink="/services" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">🔧</i>
         <span>Servicios</span>
       </a>
       
       <!-- Personal - Todos pueden ver -->
-      <a routerLink="/staff" routerLinkActive="active" class="nav-item">
+      <a routerLink="/staff" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">👷</i>
         <span>Personal</span>
       </a>
       
       <!-- Calendario - Todos pueden ver -->
-      <a routerLink="/calendar" routerLinkActive="active" class="nav-item">
+      <a routerLink="/calendar" 
+         routerLinkActive="active" 
+         class="nav-item"
+         (click)="isMobile && closeSidebar()">
         <i class="icon">📅</i>
         <span>Calendario</span>
       </a>
@@ -53,22 +79,34 @@
         <div class="nav-separator"></div>
         
         <!-- Finanzas - Solo admins -->
-        <a routerLink="/finances" routerLinkActive="active" class="nav-item">
+        <a routerLink="/finances" 
+           routerLinkActive="active" 
+           class="nav-item"
+           (click)="isMobile && closeSidebar()">
           <i class="icon">💎</i>
           <span>Finanzas</span>
         </a>
         
-        <a routerLink="/users" routerLinkActive="active" class="nav-item">
+        <a routerLink="/users" 
+           routerLinkActive="active" 
+           class="nav-item"
+           (click)="isMobile && closeSidebar()">
           <i class="icon">👥</i>
           <span>Gestión de Usuarios</span>
         </a>
         
-        <a routerLink="/roles" routerLinkActive="active" class="nav-item">
+        <a routerLink="/roles" 
+           routerLinkActive="active" 
+           class="nav-item"
+           (click)="isMobile && closeSidebar()">
           <i class="icon">🔐</i>
           <span>Gestión de Roles</span>
         </a>
         
-        <a routerLink="/settings" routerLinkActive="active" class="nav-item">
+        <a routerLink="/settings" 
+           routerLinkActive="active" 
+           class="nav-item"
+           (click)="isMobile && closeSidebar()">
           <i class="icon">⚙️</i>
           <span>Configuración</span>
         </a>
@@ -95,19 +133,35 @@
   <main class="main-content">
     <!-- Header -->
     <header class="header">
-      <button class="menu-btn" (click)="toggleSidebar()">
-        <span></span>
-        <span></span>
-        <span></span>
+      <button class="menu-btn" (click)="toggleSidebar()" aria-label="Abrir menú">
+        <span class="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
       </button>
       
       <div class="header-title">
         <h1>Nueva Nave</h1>
+        <span class="hide-on-mobile">Sistema de Gestión</span>
       </div>
       
       <div class="header-actions">
-        <div class="user-badge" *ngIf="currentUser$ | async as user">
-          {{ user.name }} ({{ user.role }})
+        <!-- Botón de instalación PWA para iOS -->
+        <button *ngIf="(isInstallable$ | async) && !isMobile" 
+                class="install-btn hide-on-desktop"
+                (click)="showInstallPrompt()"
+                title="Instalar aplicación">
+          <i class="icon">📱</i>
+          <span class="sr-only">Instalar</span>
+        </button>
+        
+        <div class="user-menu" *ngIf="currentUser$ | async as user">
+          <div class="user-avatar mobile-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
+          <div class="user-info-mobile hide-on-mobile">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-role">{{ user.role }}</div>
+          </div>
         </div>
       </div>
     </header>
@@ -117,7 +171,4 @@
       <router-outlet></router-outlet>
     </div>
   </main>
-  
-  <!-- Overlay para mobile -->
-  <div class="overlay" [class.show]="sidebarOpen" (click)="toggleSidebar()"></div>
 </div>
